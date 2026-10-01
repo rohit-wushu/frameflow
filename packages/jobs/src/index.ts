@@ -170,8 +170,12 @@ export interface VoiceSampleJobData {
   language: string;
 }
 
+export class NoWorkerError extends Error {}
+
 // A short preview of a voice (cached in storage by the worker). Returns the wav's storage key.
+// Throws NoWorkerError at once when no worker is listening (instead of waiting for the timeout).
 export async function voiceSample(data: VoiceSampleJobData, timeoutMs = 90_000): Promise<string> {
+  if ((await queue(VOICE_QUEUE).getWorkersCount()) === 0) throw new NoWorkerError("no worker is running");
   g.frameflowVoiceEvents ??= new QueueEvents(VOICE_QUEUE, { connection: redis().duplicate(), prefix: PREFIX });
   const job = await queue(VOICE_QUEUE).add("sample", data, { removeOnComplete: { age: 60 }, removeOnFail: { age: 3600 } });
   return (await job.waitUntilFinished(g.frameflowVoiceEvents, timeoutMs)) as string;
