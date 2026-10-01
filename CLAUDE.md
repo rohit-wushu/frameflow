@@ -125,7 +125,7 @@ wrap them as BullMQ jobs.
 - Processes: **web** (`apps/web`, Next.js 16 App Router + Tailwind 4 + shadcn/ui, port 3210) only does UI, auth,
   database rows and queueing; **worker** (`apps/worker`) runs everything heavy. The web app never imports the
   engine: it reads `src/generated/catalog.json` (templates + JSON schemas + examples, voices, fonts; written by
-  `apps/web/scripts/catalog.mts` before dev/build) and validates plans by asking the worker (`check` queue).
+  `apps/web/scripts/catalog.mts` as the first step of the web `dev` and `build` scripts; not a `predev` hook, which pnpm skips by default) and validates plans by asking the worker (`check` queue).
 - Queues (`packages/jobs`, BullMQ 6 on Redis db 5, prefix `frameflow`): `media` (brand research + render stages,
   concurrency 1 because of Chrome + audio models on 8 GB), `ai` (director plans and chat edits, 3), `check` (8).
   BullMQ 6 needs an ioredis client instance (not connection options) in ESM.
