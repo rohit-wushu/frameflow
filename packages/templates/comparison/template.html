@@ -1,0 +1,81 @@
+<style>
+  .t-comparison .wrap { display: flex; flex-direction: column; align-items: center; gap: calc(var(--u) * 4); width: 100%; }
+  .t-comparison .title { font-family: var(--heading-font); font-weight: 700; line-height: 1.08; letter-spacing: -0.02em; color: var(--text); }
+  .t-comparison .cols { position: relative; display: grid; grid-template-columns: 1fr 1fr; gap: calc(var(--u) * 3.4); width: 100%; max-width: calc(var(--u) * 164); }
+  .t-comparison .col {
+    position: relative; display: flex; flex-direction: column; gap: calc(var(--u) * 2.4); text-align: left;
+    padding: calc(var(--u) * 4.4) calc(var(--u) * 4.4); border-radius: calc(var(--u) * 2.4); background: var(--card); border: 2px solid var(--line);
+  }
+  .t-comparison .right { background: color-mix(in srgb, var(--primary) 12%, transparent); border-color: color-mix(in srgb, var(--primary) 40%, transparent); }
+  .t-comparison .glow { position: absolute; inset: -2px; border-radius: inherit; border: 3px solid var(--primary); box-shadow: 0 0 calc(var(--u) * 5) color-mix(in srgb, var(--primary) 45%, transparent); opacity: 0; }
+  .t-comparison .label { font: 700 calc(var(--u) * 2.8) / 1 var(--body-font); letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); margin-bottom: calc(var(--u) * 0.8); }
+  .t-comparison .right .label { color: var(--primary); }
+  .t-comparison .point { display: flex; align-items: center; gap: calc(var(--u) * 2); font: 600 calc(var(--u) * 3.9) / 1.25 var(--body-font); color: var(--text); }
+  .t-comparison .left .point { color: var(--muted); font-weight: 500; }
+  .t-comparison .sign { flex: none; width: calc(var(--u) * 5); height: calc(var(--u) * 5); border-radius: 50%; display: grid; place-items: center; }
+  .t-comparison .sign svg { width: 58%; height: 58%; }
+  .t-comparison .left .sign { color: var(--muted); background: color-mix(in srgb, var(--text) 8%, transparent); }
+  .t-comparison .right .sign { color: var(--on-primary); background: var(--primary); }
+  .t-comparison .vs {
+    position: absolute; left: 50%; top: 50%; width: calc(var(--u) * 7); height: calc(var(--u) * 7); margin: calc(var(--u) * -3.5) 0 0 calc(var(--u) * -3.5);
+    border-radius: 50%; display: grid; place-items: center; background: var(--bg); border: 2px solid var(--line);
+    font: 700 calc(var(--u) * 2.2) / 1 var(--heading-font); color: var(--muted); z-index: 2;
+  }
+  /* portrait: one column above the other */
+  .t-comparison .stack { grid-template-columns: 1fr; gap: calc(var(--u) * 4.4); max-width: calc(var(--u) * 86); }
+</style>
+<script>
+  FF.register("comparison", function (ctx) {
+    var h = ctx.h, A = h.A, c = ctx.content, tl = ctx.tl, u = ctx.u;
+    var X = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"><path d="M7 7l10 10M17 7L7 17"/></svg>';
+    var V = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
+    var portrait = ctx.format === "9:16";
+    var wrap = h.el("div", "wrap");
+    var titleWords = [];
+    if (c.title) {
+      var title = h.el("div", "title");
+      title.style.fontSize = h.fit(c.title, { width: ctx.W - 16 * u, lines: 2, size: 7.2 * u }) + "px";
+      titleWords = h.words(title, c.title);
+      wrap.append(title);
+    }
+    var cols = h.el("div", "cols" + (portrait ? " stack" : ""));
+    function column(side, label, points, sign) {
+      var col = h.el("div", "col " + side);
+      col.append(h.el("div", "label", label));
+      var rows = points.map(function (p) {
+        var row = h.el("div", "point");
+        var s = h.el("span", "sign");
+        s.innerHTML = sign;
+        row.append(s, h.el("span", "", p));
+        col.append(row);
+        return row;
+      });
+      return { col: col, rows: rows };
+    }
+    var left = column("left", c.leftLabel, c.left, X);
+    var right = column("right", c.rightLabel, c.right, V);
+    var glow = h.el("div", "glow");
+    right.col.append(glow);
+    var vs = h.el("div", "vs", "VS");
+    cols.append(left.col, right.col, vs);
+    wrap.append(cols);
+    ctx.el.append(wrap);
+
+    var t0 = ctx.t0;
+    if (titleWords.length) A.reveal(titleWords, ctx.wordTimes(titleWords, t0 + 0.05, 0.05));
+    // the old way first, quickly
+    A.rise(left.col, t0 + 0.15, { y: 3 * u, d: 0.5 });
+    A.fade(left.rows, t0 + 0.35, { stagger: 0.1, d: 0.35 });
+    A.pop(vs, t0 + 0.45, { from: 0.4 });
+    var firstRight = ctx.items[0];
+    A.rise(right.col, Math.max(t0 + 0.5, firstRight - 0.45), { y: 3 * u, d: 0.5 });
+    right.rows.forEach(function (row, i) {
+      tl.fromTo(row, { autoAlpha: 0, x: 3 * u }, { autoAlpha: 1, x: 0, duration: 0.4, ease: "power3.out" }, ctx.items[i]);
+    });
+    // the better side lights up, the old side steps back
+    var end = Math.min(ctx.items[ctx.items.length - 1] + 0.6, ctx.t1 - 0.6);
+    tl.fromTo(glow, { opacity: 0 }, { opacity: 1, duration: 0.4, ease: "power2.out", immediateRender: false }, end);
+    tl.to(left.col, { opacity: 0.55, scale: 0.97, duration: 0.5, ease: "power2.out" }, end);
+    A.bump(right.col, end, { scale: 1.03 });
+  });
+</script>

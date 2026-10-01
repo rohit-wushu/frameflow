@@ -1,0 +1,12 @@
+{
+  "content": {
+    "title": "Everything, automatic",
+    "items": [
+      { "icon": "file-text", "title": "Script", "text": "Written from your one line" },
+      { "icon": "microphone", "title": "Voiceover", "text": "Natural voices, perfectly timed" },
+      { "icon": "music", "title": "Beat-synced cuts", "text": "Every scene lands on the beat" }
+    ]
+  },
+  "voiceover": "Frameflow writes the script, records the voiceover, and cuts every scene on the beat.",
+  "estDuration": 5.5
+}

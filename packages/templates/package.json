@@ -1,0 +1,19 @@
+{
+  "name": "@frameflow/templates",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "registry.ts",
+  "exports": {
+    ".": "./registry.ts",
+    "./catalog": "./catalog.ts"
+  },
+  "dependencies": {
+    "@frameflow/scene-schema": "workspace:*",
+    "@tabler/icons": "^3.34.0",
+    "zod": "^4.1.0"
+  },
+  "devDependencies": {
+    "playwright": "^1.63.0"
+  }
+}

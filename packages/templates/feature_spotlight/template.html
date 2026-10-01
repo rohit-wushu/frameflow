@@ -1,0 +1,80 @@
+<style>
+  .t-feature_spotlight .wrap { display: flex; align-items: center; justify-content: center; gap: calc(var(--u) * 9); width: 100%; max-width: calc(var(--u) * 168); }
+  .t-feature_spotlight .copy { display: flex; flex-direction: column; gap: calc(var(--u) * 2.4); text-align: left; align-items: flex-start; flex: 1 1 0; min-width: 0; }
+  .t-feature_spotlight .eyebrow {
+    font: 600 calc(var(--u) * 2.1) / 1 var(--body-font); letter-spacing: 0.16em; text-transform: uppercase; color: var(--on-primary);
+    background: var(--primary); padding: calc(var(--u) * 1) calc(var(--u) * 2); border-radius: 999px;
+  }
+  .t-feature_spotlight .title { font-family: var(--heading-font); font-weight: 700; line-height: 1.04; letter-spacing: -0.03em; color: var(--text); }
+  .t-feature_spotlight .text { font: 400 calc(var(--u) * 3.9) / 1.4 var(--body-font); color: var(--muted); max-width: calc(var(--u) * 82); }
+  .t-feature_spotlight .visual { position: relative; flex: none; display: grid; place-items: center; }
+  .t-feature_spotlight .orb {
+    position: relative; width: 100%; height: 100%; border-radius: 50%; display: grid; place-items: center; color: var(--primary);
+    background: radial-gradient(circle at 35% 30%, color-mix(in srgb, var(--primary) 34%, transparent), color-mix(in srgb, var(--primary) 8%, transparent) 70%);
+    border: 2px solid color-mix(in srgb, var(--primary) 45%, transparent);
+  }
+  .t-feature_spotlight .orb .ff-icon { width: 46%; height: 46%; }
+  .t-feature_spotlight .pulse { position: absolute; inset: 0; border-radius: 50%; border: 2px solid var(--secondary); opacity: 0; }
+  .t-feature_spotlight .shot {
+    width: 100%; height: 100%; border-radius: calc(var(--u) * 2.2); overflow: hidden; border: 2px solid var(--line);
+    box-shadow: 0 calc(var(--u) * 2) calc(var(--u) * 6) color-mix(in srgb, var(--bg) 65%, transparent);
+  }
+  .t-feature_spotlight .shot img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: 50% 0; }
+  /* portrait and square: visual on top, text centered below */
+  .t-feature_spotlight .stacked { flex-direction: column; gap: calc(var(--u) * 5); }
+  .t-feature_spotlight .stacked .copy { align-items: center; text-align: center; flex: none; }
+</style>
+<script>
+  FF.register("feature_spotlight", function (ctx) {
+    var h = ctx.h, A = h.A, c = ctx.content, tl = ctx.tl, u = ctx.u;
+    var wide = ctx.format === "16:9";
+    var img = c.image && ctx.images[c.image] ? ctx.images[c.image] : null;
+    var wrap = h.el("div", "wrap" + (wide ? "" : " stacked"));
+    var copy = h.el("div", "copy");
+    var eyebrow = c.eyebrow ? h.el("div", "eyebrow", c.eyebrow) : null;
+    var title = h.el("div", "title");
+    var copyWidth = wide ? ctx.W * 0.42 : ctx.W - 16 * u;
+    title.style.fontSize = h.fit(c.title, { width: copyWidth, lines: wide ? 3 : 2, size: (wide ? 10.5 : 8.4) * u }) + "px";
+    var titleWords = h.words(title, c.title);
+    var text = h.el("div", "text", c.text);
+    if (eyebrow) copy.append(eyebrow);
+    copy.append(title, text);
+
+    // the visual: a screenshot sized to its aspect, or an icon orb
+    var visual = h.el("div", "visual");
+    var target, pulse = null, glyph = null;
+    if (img) {
+      var maxW = wide ? ctx.W * 0.44 : ctx.W - 16 * u;
+      var maxH = wide ? ctx.H * 0.62 : ctx.H * (ctx.format === "9:16" ? 0.36 : 0.4);
+      var w = Math.min(maxW, maxH * img.aspect);
+      visual.style.width = w + "px";
+      visual.style.height = w / img.aspect + "px";
+      target = h.el("div", "shot");
+      var pic = h.el("img");
+      pic.src = img.src;
+      target.append(pic);
+    } else {
+      var size = (wide ? 48 : ctx.format === "9:16" ? 50 : 36) * u;
+      visual.style.width = visual.style.height = size + "px";
+      target = h.el("div", "orb");
+      glyph = h.icon(c.icon || "sparkles");
+      target.append(glyph);
+      pulse = h.el("div", "pulse");
+      visual.append(pulse);
+    }
+    visual.append(target);
+    if (wide) wrap.append(copy, visual);
+    else wrap.append(visual, copy);
+    ctx.el.append(wrap);
+
+    var t0 = ctx.t0, hit = ctx.accent;
+    tl.fromTo(target, { autoAlpha: 0, scale: 0.86, y: 4 * u }, { autoAlpha: 1, scale: 1, y: 0, duration: 0.7, ease: "back.out(1.5)" }, hit);
+    if (glyph) A.draw(glyph, hit + 0.15, 0.8);
+    if (pulse) tl.fromTo(pulse, { scale: 0.9, opacity: 0.8 }, { scale: 1.35, opacity: 0, duration: 1.1, ease: "power2.out", immediateRender: false }, hit + 0.1);
+    if (img) tl.fromTo(target.firstChild, { scale: 1 }, { scale: 1.06, duration: Math.max(0.5, ctx.t1 - hit), ease: "none", immediateRender: false }, hit);
+    if (eyebrow) A.pop(eyebrow, t0 + 0.15, { from: 0.7 });
+    A.reveal(titleWords, ctx.wordTimes(titleWords, t0 + 0.25, 0.06));
+    var after = ctx.say(c.title.split(/\s+/).pop(), t0, t0 + 0.6);
+    A.rise(text, Math.min(after + 0.35, ctx.t1 - 0.8), { y: 2 * u });
+  });
+</script>

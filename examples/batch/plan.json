@@ -1,0 +1,70 @@
+{
+  "id": "invite",
+  "version": 1,
+  "title": "Invite for {{name}}",
+  "format": "16:9",
+  "targetDuration": 10,
+  "language": "en",
+  "mood": "energetic",
+  "brand": {
+    "name": "Frameflow",
+    "colors": {
+      "primary": "#7C5CFF",
+      "secondary": "#22D3EE",
+      "background": "#0B0B14",
+      "text": "#F5F5FA"
+    },
+    "font": {
+      "heading": "Space Grotesk",
+      "body": "Inter"
+    }
+  },
+  "voice": {
+    "engine": "kokoro",
+    "voiceId": "af_heart",
+    "speed": 1.0
+  },
+  "music": {
+    "mode": "library",
+    "mood": "energetic"
+  },
+  "scenes": [
+    {
+      "id": "hook",
+      "template": "hero_text",
+      "content": {
+        "eyebrow": "For {{city}}",
+        "headline": "{{name}}, your video is ready",
+        "highlight": "video"
+      },
+      "voiceover": "{{name}}, your video is ready.",
+      "estDuration": 2.8,
+      "sfx": [],
+      "transitionOut": "zoom"
+    },
+    {
+      "id": "cta",
+      "template": "cta",
+      "content": {
+        "headline": "Make your first video",
+        "subline": "One line is all it takes.",
+        "buttonText": "Try Frameflow"
+      },
+      "voiceover": "Make your first video today. It only takes one line.",
+      "estDuration": 3.5,
+      "sfx": [],
+      "transitionOut": "wipe"
+    },
+    {
+      "id": "logo",
+      "template": "logo_reveal",
+      "content": {
+        "tagline": "Motion design on autopilot."
+      },
+      "voiceover": "Frameflow. Motion design on autopilot.",
+      "estDuration": 3.5,
+      "sfx": [],
+      "transitionOut": "cut"
+    }
+  ]
+}

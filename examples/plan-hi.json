@@ -1,0 +1,65 @@
+{
+  "id": "frameflow-hindi",
+  "version": 1,
+  "title": "Frameflow, Hindi intro",
+  "format": "16:9",
+  "targetDuration": 15,
+  "language": "hi",
+  "mood": "energetic",
+  "brand": {
+    "name": "Frameflow",
+    "colors": { "primary": "#7C5CFF", "secondary": "#22D3EE", "background": "#0B0B14", "text": "#F5F5FA" },
+    "font": { "heading": "Poppins", "body": "Poppins" }
+  },
+  "voice": { "engine": "kokoro", "voiceId": "hf_alpha", "speed": 1 },
+  "music": { "mode": "library", "mood": "energetic" },
+  "scenes": [
+    {
+      "id": "hook",
+      "template": "kinetic_words",
+      "content": { "text": "एक लाइन लिखिए, वीडियो तैयार।", "emphasis": "वीडियो" },
+      "voiceover": "एक लाइन लिखिए, वीडियो तैयार।",
+      "estDuration": 2.4,
+      "transitionOut": "cut"
+    },
+    {
+      "id": "problems",
+      "template": "problem_list",
+      "content": { "title": "आज वीडियो बनाना मुश्किल है", "items": ["घंटों की एडिटिंग", "महंगा वॉइसओवर", "गलत म्यूज़िक"], "style": "cross" },
+      "voiceover": "घंटों की एडिटिंग, महंगा वॉइसओवर, और गलत म्यूज़िक।",
+      "estDuration": 3.8,
+      "transitionOut": "slide"
+    },
+    {
+      "id": "features",
+      "template": "feature_grid",
+      "content": {
+        "title": "Frameflow सब करता है",
+        "items": [
+          { "icon": "file-text", "title": "स्क्रिप्ट" },
+          { "icon": "microphone", "title": "आवाज़" },
+          { "icon": "music", "title": "म्यूज़िक" }
+        ]
+      },
+      "voiceover": "स्क्रिप्ट, आवाज़ और म्यूज़िक, सब अपने आप।",
+      "estDuration": 3.4,
+      "transitionOut": "cut"
+    },
+    {
+      "id": "cta",
+      "template": "cta",
+      "content": { "headline": "आज ही शुरू करें", "buttonText": "मुफ़्त में आज़माएं" },
+      "voiceover": "अपना पहला वीडियो आज ही बनाइए।",
+      "estDuration": 3,
+      "transitionOut": "fade"
+    },
+    {
+      "id": "logo",
+      "template": "logo_reveal",
+      "content": { "tagline": "एक लाइन में वीडियो" },
+      "voiceover": "Frameflow. एक लाइन में वीडियो।",
+      "estDuration": 2.7,
+      "transitionOut": "cut"
+    }
+  ]
+}

@@ -1,0 +1,68 @@
+<style>
+  .t-logo_reveal .wrap { position: relative; display: flex; flex-direction: column; align-items: center; gap: calc(var(--u) * 4); }
+  .t-logo_reveal .mark { position: relative; display: grid; place-items: center; min-height: calc(var(--u) * 16); }
+  .t-logo_reveal .disc, .t-logo_reveal .ring {
+    position: absolute; left: 50%; top: 50%; width: calc(var(--u) * 26); height: calc(var(--u) * 26);
+    margin: calc(var(--u) * -13) 0 0 calc(var(--u) * -13); border-radius: 50%;
+  }
+  .t-logo_reveal .disc { background: var(--primary); }
+  .t-logo_reveal .ring { border: calc(var(--u) * 0.45) solid var(--secondary); opacity: 0; }
+  .t-logo_reveal .logo { position: relative; display: block; max-width: calc(var(--u) * 48); max-height: calc(var(--u) * 20); object-fit: contain; }
+  /* an icon-shaped logo gets the brand name beside it (below it in portrait) */
+  .t-logo_reveal .lockup { position: relative; display: flex; align-items: center; gap: calc(var(--u) * 3.2); }
+  [data-format="9:16"] .t-logo_reveal .lockup { flex-direction: column; }
+  .t-logo_reveal .lockup .logo { height: calc(var(--u) * 14); width: auto; }
+  .t-logo_reveal .wordmark { position: relative; font-family: var(--heading-font); font-weight: 700; line-height: 1; letter-spacing: -0.035em; color: var(--text); white-space: nowrap; }
+  .t-logo_reveal .tagline { font: 500 calc(var(--u) * 3.4) / 1.35 var(--body-font); color: var(--muted); max-width: calc(var(--u) * 100); }
+</style>
+<script>
+  FF.register("logo_reveal", function (ctx) {
+    var h = ctx.h, A = h.A, c = ctx.content, tl = ctx.tl, u = ctx.u;
+    var wrap = h.el("div", "wrap"), mark = h.el("div", "mark");
+    var disc = h.el("div", "disc"), ring = h.el("div", "ring");
+    var logo, letters = null, img = null;
+    var wordmark = function (size) {
+      var w = h.el("div", "wordmark");
+      w.style.fontSize = h.fit(ctx.brand.name, { width: ctx.W - 20 * u, lines: 1, size: size, charWidth: 0.6 }) + "px";
+      letters = h.letters(w, ctx.brand.name);
+      return w;
+    };
+    if (ctx.logo) {
+      img = h.el("img", "logo");
+      img.src = ctx.logo.src;
+      img.alt = ctx.brand.name;
+      if (ctx.logo.aspect < 1.8) {
+        logo = h.el("div", "lockup");
+        logo.append(img, wordmark(10 * u));
+      } else {
+        // size wide logos explicitly: an SVG's own width/height is its size on the website (often ~110 px)
+        var tall = Math.min(20 * u, (44 * u) / ctx.logo.aspect);
+        img.style.height = tall + "px";
+        img.style.width = tall * ctx.logo.aspect + "px";
+        logo = img;
+      }
+    } else {
+      logo = wordmark(12 * u);
+    }
+    mark.append(disc, ring, logo);
+    wrap.append(mark);
+    var tag = c.tagline ? h.el("div", "tagline") : null;
+    var tagWords = tag ? h.words(tag, c.tagline) : [];
+    if (tag) wrap.append(tag);
+    ctx.el.append(wrap);
+
+    var t0 = ctx.t0, hit = ctx.accent;
+    // a disc gathers, then bursts on the hit as the logo lands (the impact sound lands there too)
+    tl.fromTo(disc, { scale: 0, autoAlpha: 1 }, { scale: 1, duration: Math.max(0.2, hit - t0 - 0.05), ease: "power3.in" }, t0 + 0.05);
+    tl.to(disc, { scale: 5, autoAlpha: 0, duration: 0.7, ease: "power2.out" }, hit);
+    tl.fromTo(ring, { scale: 0.8, opacity: 0.9 }, { scale: 3, opacity: 0, duration: 1.0, ease: "power2.out", immediateRender: false }, hit);
+    if (img) tl.fromTo(img, { autoAlpha: 0, scale: 0.5 }, { autoAlpha: 1, scale: 1, duration: 0.7, ease: "back.out(1.8)" }, hit);
+    if (letters) tl.fromTo(letters, { autoAlpha: 0, yPercent: 40, scale: 0.7 }, { autoAlpha: 1, yPercent: 0, scale: 1, duration: 0.6, ease: "back.out(2)", stagger: 0.025 }, hit + (img ? 0.15 : 0));
+    if (tag) {
+      // on the spoken words, but never before the logo has landed
+      var times = ctx.wordTimes(tagWords, hit + 0.45, 0.06).map(function (t, i) { return Math.max(t, hit + 0.35 + i * 0.05); });
+      A.reveal(tagWords, times);
+    }
+    tl.fromTo(wrap, { scale: 1 }, { scale: 1.04, duration: Math.max(0.5, ctx.t1 - hit), ease: "none", immediateRender: false }, hit);
+  });
+</script>

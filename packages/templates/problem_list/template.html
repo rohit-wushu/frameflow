@@ -1,0 +1,72 @@
+<style>
+  .t-problem_list .wrap { display: flex; flex-direction: column; align-items: center; gap: calc(var(--u) * 5); width: 100%; }
+  .t-problem_list .title { font-family: var(--heading-font); font-weight: 700; line-height: 1.08; letter-spacing: -0.02em; color: var(--text); }
+  .t-problem_list .list { display: flex; flex-direction: column; gap: calc(var(--u) * 2.4); width: 100%; max-width: calc(var(--u) * 132); }
+  .t-problem_list .row {
+    position: relative; display: flex; align-items: center; gap: calc(var(--u) * 2.4); text-align: left;
+    padding: calc(var(--u) * 2.8) calc(var(--u) * 3.6); border-radius: calc(var(--u) * 2.2); background: var(--card); border: 2px solid var(--line);
+  }
+  .t-problem_list .mark {
+    flex: none; width: calc(var(--u) * 6.2); height: calc(var(--u) * 6.2); border-radius: 50%; display: grid; place-items: center;
+    color: var(--muted); background: color-mix(in srgb, var(--text) 8%, transparent);
+  }
+  .t-problem_list .mark svg { width: 52%; height: 52%; }
+  .t-problem_list .label { position: relative; font: 600 calc(var(--u) * 4.4) / 1.2 var(--body-font); color: var(--text); }
+  .t-problem_list .strike {
+    position: absolute; left: -0.1em; right: -0.1em; top: 52%; height: 0.11em; border-radius: 0.06em;
+    background: var(--primary); transform-origin: 0 50%; transform: scaleX(0);
+  }
+  /* stack: cards pile up, each a little tilted */
+  .t-problem_list .stack { display: grid; width: 100%; max-width: calc(var(--u) * 100); }
+  .t-problem_list .stack .row { grid-area: 1 / 1; justify-content: center; padding: calc(var(--u) * 4) calc(var(--u) * 4); box-shadow: 0 calc(var(--u) * 1.4) calc(var(--u) * 4) color-mix(in srgb, var(--bg) 70%, transparent); background: color-mix(in srgb, var(--text) 9%, var(--bg)); }
+  .t-problem_list .stack .label { font-size: calc(var(--u) * 5.2); }
+</style>
+<script>
+  FF.register("problem_list", function (ctx) {
+    var h = ctx.h, A = h.A, c = ctx.content, tl = ctx.tl, u = ctx.u;
+    var X = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>';
+    var stacked = c.style === "stack";
+    var wrap = h.el("div", "wrap");
+    var title = h.el("div", "title");
+    title.style.fontSize = h.fit(c.title, { width: ctx.W - 16 * u, lines: 2, size: 7.6 * u }) + "px";
+    var titleWords = h.words(title, c.title);
+    var list = h.el("div", stacked ? "stack" : "list");
+    wrap.append(title, list);
+    ctx.el.append(wrap);
+
+    var rows = c.items.map(function (text, i) {
+      var row = h.el("div", "row");
+      var label = h.el("div", "label", text);
+      if (!stacked) {
+        var mark = h.el("div", "mark");
+        mark.innerHTML = X;
+        row.append(mark);
+      }
+      var strike = h.el("div", "strike");
+      label.append(strike);
+      row.append(label);
+      list.append(row);
+      return { row: row, strike: strike };
+    });
+
+    A.reveal(titleWords, ctx.wordTimes(titleWords, ctx.t0 + 0.1, 0.05));
+    rows.forEach(function (r, i) {
+      var at = ctx.items[i];
+      if (stacked) {
+        var tilt = (i % 2 ? 1 : -1) * (2 + i);
+        tl.fromTo(r.row, { autoAlpha: 0, y: 14 * u, rotation: tilt * 2, scale: 1.1 }, { autoAlpha: 1, y: -i * 1.6 * u, rotation: tilt, scale: 1, duration: 0.5, ease: "back.out(1.5)" }, at);
+      } else {
+        tl.fromTo(r.row, { autoAlpha: 0, x: -6 * u }, { autoAlpha: 1, x: 0, duration: 0.45, ease: "power3.out" }, at);
+      }
+    });
+    if (!stacked) {
+      // strike them out once the last one has had a moment on screen
+      var last = ctx.items[ctx.items.length - 1];
+      var at = Math.min(Math.max(last + 0.7, ctx.t1 - 1.2), ctx.t1 - 0.55);
+      rows.forEach(function (r, i) {
+        tl.to(r.strike, { scaleX: 1, duration: 0.3, ease: "power2.inOut" }, at + i * 0.12);
+        tl.to(r.row, { opacity: 0.5, duration: 0.3, ease: "power1.out" }, at + i * 0.12 + 0.2);
+      });
+    }
+  });
+</script>

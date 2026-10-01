@@ -1,0 +1,51 @@
+{
+  "tracks": [
+    {
+      "id": "motivator",
+      "title": "Motivator",
+      "file": "motivator.mp3",
+      "moods": [
+        "energetic"
+      ],
+      "energy": 0.85,
+      "bpm": 126.05,
+      "duration": 237.819,
+      "feel": "Bouncy, Bright, Driving, Uplifting",
+      "source": "https://incompetech.com/music/royalty-free/mp3-royaltyfree/Motivator.mp3",
+      "license": "CC-BY-4.0",
+      "attribution": "\"Motivator\" Kevin MacLeod (incompetech.com)\nLicensed under Creative Commons: By Attribution 4.0 License\nhttp://creativecommons.org/licenses/by/4.0/"
+    },
+    {
+      "id": "inspired",
+      "title": "Inspired",
+      "file": "inspired.mp3",
+      "moods": [
+        "premium",
+        "calm",
+        "serious"
+      ],
+      "energy": 0.5,
+      "bpm": 120.19,
+      "duration": 286.067,
+      "feel": "Bright, Relaxed, Calming, Uplifting",
+      "source": "https://incompetech.com/music/royalty-free/mp3-royaltyfree/Inspired.mp3",
+      "license": "CC-BY-4.0",
+      "attribution": "\"Inspired\" Kevin MacLeod (incompetech.com)\nLicensed under Creative Commons: By Attribution 4.0 License\nhttp://creativecommons.org/licenses/by/4.0/"
+    },
+    {
+      "id": "life-of-riley",
+      "title": "Life of Riley",
+      "file": "life-of-riley.mp3",
+      "moods": [
+        "playful"
+      ],
+      "energy": 0.6,
+      "bpm": 101.83,
+      "duration": 235.363,
+      "feel": "Bright, Relaxed, Uplifting",
+      "source": "https://incompetech.com/music/royalty-free/mp3-royaltyfree/Life%20of%20Riley.mp3",
+      "license": "CC-BY-4.0",
+      "attribution": "\"Life of Riley\" Kevin MacLeod (incompetech.com)\nLicensed under Creative Commons: By Attribution 4.0 License\nhttp://creativecommons.org/licenses/by/4.0/"
+    }
+  ]
+}

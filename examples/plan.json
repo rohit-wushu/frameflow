@@ -1,0 +1,83 @@
+{
+  "id": "frameflow-intro",
+  "version": 1,
+  "title": "Frameflow intro",
+  "format": "16:9",
+  "targetDuration": 20,
+  "language": "en",
+  "mood": "energetic",
+  "brand": {
+    "name": "Frameflow",
+    "colors": { "primary": "#7C5CFF", "secondary": "#22D3EE", "background": "#0B0B14", "text": "#F5F5FA" },
+    "font": { "heading": "Space Grotesk", "body": "Inter" }
+  },
+  "voice": { "engine": "kokoro", "voiceId": "af_heart", "speed": 1.0 },
+  "music": { "mode": "library", "mood": "energetic" },
+  "scenes": [
+    {
+      "id": "hook",
+      "template": "hero_text",
+      "content": {
+        "eyebrow": "Frameflow",
+        "headline": "Type one line. Get a finished video.",
+        "highlight": "video",
+        "subtext": "Script, voice, music and motion, made for you."
+      },
+      "voiceover": "Type one line, and get a finished video.",
+      "estDuration": 3.5,
+      "sfx": [],
+      "transitionOut": "zoom"
+    },
+    {
+      "id": "features",
+      "template": "feature_grid",
+      "content": {
+        "title": "Everything, automatic",
+        "items": [
+          { "icon": "file-text", "title": "Script", "text": "Written from your one line" },
+          { "icon": "microphone", "title": "Voiceover", "text": "Natural voices, perfectly timed" },
+          { "icon": "music", "title": "Beat-synced cuts", "text": "Every scene lands on the beat" }
+        ]
+      },
+      "voiceover": "Frameflow writes the script, records the voiceover, and cuts every scene on the beat.",
+      "estDuration": 5.5,
+      "sfx": [],
+      "transitionOut": "slide"
+    },
+    {
+      "id": "stat",
+      "template": "stat_counter",
+      "content": {
+        "value": 12,
+        "label": "motion templates, tuned to your brand",
+        "context": "Colors · Fonts · Logo"
+      },
+      "voiceover": "Pick from 12 templates, each one tuned to your brand colors and fonts.",
+      "estDuration": 4,
+      "sfx": [{ "at": "on_word", "word": "brand", "sound": "ding" }],
+      "transitionOut": "fade"
+    },
+    {
+      "id": "cta",
+      "template": "cta",
+      "content": {
+        "headline": "Make your first video",
+        "subline": "One line is all it takes.",
+        "buttonText": "Try Frameflow"
+      },
+      "voiceover": "Make your first video today. It only takes one line.",
+      "estDuration": 3.5,
+      "sfx": [],
+      "transitionOut": "wipe"
+    },
+    {
+      "id": "logo",
+      "template": "logo_reveal",
+      "content": { "tagline": "Motion design on autopilot." },
+      "voiceover": "Frameflow. Motion design on autopilot.",
+      "estDuration": 3.5,
+      "sfx": [],
+      "transitionOut": "cut"
+    }
+  ]
+}

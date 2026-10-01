@@ -1,0 +1,18 @@
+{
+  "name": "@frameflow/renderer",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@frameflow/mixer": "workspace:*",
+    "@frameflow/scene-schema": "workspace:*",
+    "@frameflow/templates": "workspace:*",
+    "@frameflow/timing": "workspace:*",
+    "gsap": "3.14.2",
+    "hyperframes": "0.7.99"
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "content": {
+    "title": "A launch video, two ways",
+    "leftLabel": "The usual way",
+    "left": ["Two weeks of edits", "Hired voice talent", "Music licensing"],
+    "rightLabel": "With Frameflow",
+    "right": ["Ready in minutes", "Built-in voices", "Music included"]
+  },
+  "voiceover": "With Frameflow it is ready in minutes, with built-in voices and music included.",
+  "estDuration": 5.4
+}

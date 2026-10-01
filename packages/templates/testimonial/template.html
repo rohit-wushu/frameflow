@@ -1,0 +1,43 @@
+<style>
+  .t-testimonial .wrap { position: relative; display: flex; flex-direction: column; align-items: center; gap: calc(var(--u) * 4.4); max-width: calc(var(--u) * 164); }
+  .t-testimonial .qmark { font: 700 calc(var(--u) * 22) / 0.7 var(--heading-font); color: var(--primary); height: calc(var(--u) * 10); }
+  .t-testimonial .quote { font-family: var(--heading-font); font-weight: 600; line-height: 1.2; letter-spacing: -0.015em; color: var(--text); }
+  .t-testimonial .who { display: flex; align-items: center; gap: calc(var(--u) * 2.2); text-align: left; }
+  .t-testimonial .avatar {
+    flex: none; width: calc(var(--u) * 9.4); height: calc(var(--u) * 9.4); border-radius: 50%; display: grid; place-items: center;
+    background: var(--primary); color: var(--on-primary); font: 700 calc(var(--u) * 3) / 1 var(--heading-font);
+  }
+  .t-testimonial .name { font: 700 calc(var(--u) * 3.6) / 1.2 var(--body-font); color: var(--text); }
+  .t-testimonial .role { font: 400 calc(var(--u) * 2.9) / 1.3 var(--body-font); color: var(--muted); }
+  .t-testimonial .rule { width: calc(var(--u) * 10); height: calc(var(--u) * 0.5); border-radius: 99px; background: var(--secondary); transform-origin: 50% 50%; }
+</style>
+<script>
+  FF.register("testimonial", function (ctx) {
+    var h = ctx.h, A = h.A, c = ctx.content, tl = ctx.tl, u = ctx.u;
+    var wrap = h.el("div", "wrap");
+    var qmark = h.el("div", "qmark", "“");
+    var quote = h.el("div", "quote");
+    var lines = ctx.format === "9:16" ? 7 : ctx.format === "1:1" ? 5 : 4;
+    quote.style.fontSize = h.fit(c.quote, { width: Math.min(ctx.W - 16 * u, 164 * u), lines: lines, size: 8.6 * u, charWidth: 0.55 }) + "px";
+    var words = h.words(quote, c.quote);
+    var rule = h.el("div", "rule");
+    var who = h.el("div", "who");
+    var initials = c.name.split(/\s+/).filter(Boolean).slice(0, 2).map(function (p) { return p.charAt(0).toUpperCase(); }).join("");
+    var avatar = h.el("div", "avatar", initials);
+    var meta = h.el("div", "");
+    meta.append(h.el("div", "name", c.name));
+    if (c.role) meta.append(h.el("div", "role", c.role));
+    who.append(avatar, meta);
+    wrap.append(qmark, quote, rule, who);
+    ctx.el.append(wrap);
+
+    var t0 = ctx.t0;
+    tl.fromTo(qmark, { autoAlpha: 0, scale: 0.4, rotation: -12 }, { autoAlpha: 1, scale: 1, rotation: 0, duration: 0.55, ease: "back.out(2)" }, t0 + 0.05);
+    var times = ctx.wordTimes(words, t0 + 0.25, 0.07);
+    A.reveal(words, times, { d: 0.45 });
+    var end = Math.min(times[times.length - 1] + 0.4, ctx.t1 - 0.9);
+    tl.fromTo(rule, { scaleX: 0 }, { scaleX: 1, duration: 0.4, ease: "power3.out" }, end);
+    A.pop(avatar, end + 0.1, { from: 0.5 });
+    A.rise(meta, end + 0.18, { y: 2 * u, d: 0.45 });
+  });
+</script>

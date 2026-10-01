@@ -1,0 +1,49 @@
+<style>
+  .t-kinetic_words .text { font-family: var(--heading-font); font-weight: 700; line-height: 1.04; letter-spacing: -0.035em; color: var(--text); max-width: 100%; }
+  .t-kinetic_words .kw { display: inline-block; position: relative; transform-origin: 50% 80%; }
+  .t-kinetic_words .kw-in { position: relative; display: inline-block; }
+  .t-kinetic_words .marker {
+    position: absolute; left: -0.08em; right: -0.08em; top: 0.12em; bottom: 0.02em; border-radius: 0.12em;
+    background: var(--primary); transform-origin: 0 50%; transform: scaleX(0);
+  }
+  .t-kinetic_words .em { position: absolute; left: 0; top: 0; color: var(--on-primary); }
+</style>
+<script>
+  FF.register("kinetic_words", function (ctx) {
+    var h = ctx.h, c = ctx.content, tl = ctx.tl, u = ctx.u;
+    var text = h.el("div", "text");
+    var lines = ctx.format === "9:16" ? 5 : ctx.format === "1:1" ? 4 : 3;
+    text.style.fontSize = h.fit(c.text, { width: ctx.W - 18 * u, lines: lines, size: 16.5 * u, charWidth: 0.6 }) + "px";
+    var key = c.emphasis ? h.norm(c.emphasis) : null;
+    var spans = String(c.text).trim().split(/\s+/).map(function (w, i) {
+      if (i) text.append(document.createTextNode(" "));
+      var word = h.el("span", "kw");
+      var inner = h.el("span", "kw-in", w);
+      word.append(inner);
+      text.append(word);
+      return { word: word, inner: inner, marked: key !== null && h.norm(w) === key };
+    });
+    ctx.el.append(text);
+
+    // every word on its spoken time (or a quick stagger when the voiceover says something else)
+    var times = ctx.wordTimes(spans.map(function (s) { return s.inner; }), ctx.t0 + 0.12, 0.11);
+    var marked = false;
+    spans.forEach(function (s, i) {
+      var at = times[i];
+      tl.fromTo(s.word, { autoAlpha: 0, yPercent: 35, scale: 0.72 }, { autoAlpha: 1, yPercent: 0, scale: 1, duration: 0.32, ease: "back.out(2.4)" }, at);
+      if (s.marked && !marked) {
+        marked = true;
+        // the marker swipes in behind the word; a copy in the on-primary color fades in over it
+        var marker = h.el("span", "marker");
+        var em = h.el("span", "kw-in em", s.inner.textContent);
+        s.word.insertBefore(marker, s.inner);
+        s.word.append(em);
+        tl.to(marker, { scaleX: 1, duration: 0.28, ease: "power3.out" }, at + 0.12);
+        tl.fromTo(em, { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.12 }, at + 0.2);
+        h.A.bump(s.word, at + 0.2, { scale: 1.08 });
+      }
+    });
+    // a slow push-in keeps the frame alive while it holds
+    tl.fromTo(text, { scale: 1 }, { scale: 1.05, duration: Math.max(0.5, ctx.t1 - ctx.t0), ease: "none", immediateRender: false }, ctx.t0);
+  });
+</script>

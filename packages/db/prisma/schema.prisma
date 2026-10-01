@@ -1,0 +1,191 @@
+// Frameflow's database: accounts, projects and their versions, jobs (for live progress), chat.
+// The scene plan itself is JSON (the same document the engines read); files live in storage/.
+
+generator client {
+  provider     = "prisma-client"
+  output       = "../src/generated"
+  moduleFormat = "esm"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id           String     @id @default(cuid())
+  email        String     @unique
+  name         String
+  passwordHash String
+  tier         String     @default("free") // sets the monthly limits (see packages/db/src/limits.ts)
+  createdAt    DateTime   @default(now())
+  sessions     Session[]
+  projects     Project[]
+  brandKits    BrandKit[]
+  uploads      Upload[]
+  jobs         Job[]
+  batches      Batch[]
+}
+
+model Session {
+  id        String   @id // sha256 of the cookie token; the token itself is never stored
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+// A saved brand, reused across videos.
+model BrandKit {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name      String
+  brand     Json // scene-plan Brand; logoUrl is a storage key
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+}
+
+model Upload {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  key       String // storage key, e.g. uploads/<user>/<id>.png
+  mime      String
+  size      Int
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+enum ProjectStatus {
+  researching // reading the website
+  brand // waiting for the user to confirm the brand
+  directing // the director is writing the plan
+  storyboard // plan ready to edit, not rendered yet
+  rendering
+  ready
+  failed
+}
+
+model Project {
+  id             String        @id // also the plan id and the storage folder projects/<id>
+  userId         String
+  user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title          String
+  prompt         String
+  url            String?
+  format         String // the main format of the plan
+  extraFormats   String[]      @default([]) // more formats rendered from the same plan and audio
+  durationSec    Int
+  mood           String?
+  language       String        @default("en")
+  captions       Boolean       @default(false)
+  brand          Json? // confirmed brand; null = the director proposes one
+  logoKey        String? // an uploaded logo (storage key); kept when the director proposes the brand
+  research       Json? // website facts for the director + detected brand + screenshot key
+  plan           Json? // the storyboard: the working plan (edits not rendered yet live here)
+  status         ProjectStatus
+  error          String?
+  currentVersion Int? // the latest rendered version
+  batchId        String? // made by batch mode from another project's storyboard + one CSV row
+  batch          Batch?        @relation(fields: [batchId], references: [id], onDelete: SetNull)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  versions       Version[]
+  jobs           Job[]
+  messages       ChatMessage[]
+
+  @@index([userId, updatedAt])
+}
+
+enum VersionStatus {
+  rendering
+  ready
+  failed
+}
+
+// Every render is a version: its plan, outputs (projects/<id>/v<number>/) and checks. Undo = restore one.
+model Version {
+  id        String        @id @default(cuid())
+  projectId String
+  project   Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  number    Int
+  plan      Json
+  note      String // what changed, e.g. "first cut", "chat: calmer music", "restored v2"
+  status    VersionStatus
+  formats   String[]
+  duration  Float?
+  qa        Json?
+  error     String?
+  createdAt DateTime      @default(now())
+
+  @@unique([projectId, number])
+}
+
+enum JobKind {
+  research
+  direct
+  chat
+  render
+}
+
+enum JobStatus {
+  queued
+  running
+  done
+  failed
+}
+
+// Mirrors the BullMQ jobs so the UI can show live progress and quotas can be counted.
+model Job {
+  id         String    @id @default(cuid())
+  projectId  String
+  project    Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  kind       JobKind
+  version    Int?
+  status     JobStatus @default(queued)
+  step       String?
+  stepsDone  Int       @default(0)
+  stepsTotal Int
+  detail     String?
+  error      String?
+  events     Json      @default("[]")
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@index([projectId, createdAt])
+  @@index([userId, kind, createdAt])
+}
+
+model ChatMessage {
+  id        String   @id @default(cuid())
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  role      String // user | assistant
+  text      String
+  sceneId   String?
+  version   Int? // the version this change produced
+  createdAt DateTime @default(now())
+
+  @@index([projectId, createdAt])
+}
+
+// Batch mode: one storyboard with {{column}} placeholders, one new project per CSV row.
+model Batch {
+  id              String    @id @default(cuid())
+  userId          String
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sourceProjectId String
+  name            String
+  rows            Int
+  createdAt       DateTime  @default(now())
+  projects        Project[]
+
+  @@index([userId, createdAt])
+}

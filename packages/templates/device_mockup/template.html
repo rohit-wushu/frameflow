@@ -1,0 +1,104 @@
+<style>
+  .t-device_mockup .wrap { display: flex; align-items: center; justify-content: center; gap: calc(var(--u) * 7); width: 100%; height: 100%; }
+  .t-device_mockup .stacked { flex-direction: column; gap: calc(var(--u) * 5); }
+  .t-device_mockup .copy { display: flex; flex-direction: column; gap: calc(var(--u) * 2.2); text-align: left; flex: 1 1 0; min-width: 0; }
+  .t-device_mockup .stacked .copy { text-align: center; align-items: center; flex: none; }
+  .t-device_mockup .title { font-family: var(--heading-font); font-weight: 700; line-height: 1.05; letter-spacing: -0.03em; color: var(--text); }
+  .t-device_mockup .sub { font: 400 calc(var(--u) * 3) / 1.4 var(--body-font); color: var(--muted); }
+  .t-device_mockup .stage { flex: none; perspective: calc(var(--u) * 180); display: flex; flex-direction: column; align-items: center; }
+  .t-device_mockup .device { transform-origin: 50% 100%; }
+  .t-device_mockup .screen { position: relative; overflow: hidden; background: var(--bg); }
+  .t-device_mockup .screen img { position: absolute; left: 0; top: 0; width: 100%; display: block; transform-origin: 50% 0; }
+  .t-device_mockup .bezel { background: color-mix(in srgb, var(--text) 13%, var(--bg)); border: 2px solid var(--line); }
+  /* browser */
+  .t-device_mockup .browser { border-radius: calc(var(--u) * 1.8); overflow: hidden; box-shadow: 0 calc(var(--u) * 3) calc(var(--u) * 9) color-mix(in srgb, var(--bg) 70%, transparent); }
+  .t-device_mockup .bar { display: flex; align-items: center; gap: calc(var(--u) * 0.9); height: calc(var(--u) * 4.4); padding: 0 calc(var(--u) * 1.8); }
+  .t-device_mockup .dot { width: calc(var(--u) * 1.2); height: calc(var(--u) * 1.2); border-radius: 50%; background: color-mix(in srgb, var(--text) 26%, transparent); }
+  .t-device_mockup .url {
+    margin-left: calc(var(--u) * 2); flex: 1; max-width: 50%; height: calc(var(--u) * 2.6); border-radius: 99px; background: color-mix(in srgb, var(--text) 9%, transparent);
+    font: 500 calc(var(--u) * 1.5) / calc(var(--u) * 2.6) var(--body-font); color: var(--muted); padding: 0 calc(var(--u) * 1.4); white-space: nowrap; overflow: hidden; text-align: left;
+  }
+  /* laptop */
+  .t-device_mockup .lid { padding: calc(var(--u) * 1.3); border-radius: calc(var(--u) * 2.2) calc(var(--u) * 2.2) calc(var(--u) * 0.6) calc(var(--u) * 0.6); }
+  .t-device_mockup .lid .screen { border-radius: calc(var(--u) * 0.8); }
+  .t-device_mockup .base { height: calc(var(--u) * 1.8); border-radius: 0 0 calc(var(--u) * 2) calc(var(--u) * 2); position: relative; }
+  .t-device_mockup .base::after { content: ""; position: absolute; left: 50%; top: 0; width: 14%; height: 45%; transform: translateX(-50%); border-radius: 0 0 calc(var(--u) * 0.8) calc(var(--u) * 0.8); background: color-mix(in srgb, var(--text) 22%, var(--bg)); }
+  /* phone */
+  .t-device_mockup .phone { padding: calc(var(--u) * 1.4); border-radius: calc(var(--u) * 6.4); box-shadow: 0 calc(var(--u) * 3) calc(var(--u) * 9) color-mix(in srgb, var(--bg) 70%, transparent); }
+  .t-device_mockup .phone .screen { border-radius: calc(var(--u) * 5); }
+  .t-device_mockup .notch { position: absolute; left: 50%; top: calc(var(--u) * 1.4); width: 30%; height: calc(var(--u) * 2.6); transform: translateX(-50%); border-radius: 99px; background: color-mix(in srgb, var(--text) 13%, var(--bg)); z-index: 2; }
+</style>
+<script>
+  FF.register("device_mockup", function (ctx) {
+    var h = ctx.h, A = h.A, c = ctx.content, tl = ctx.tl, u = ctx.u;
+    var img = ctx.images[c.image] || null;
+    var aspect = img ? img.aspect : 1.6;
+    var device = c.device || "browser";
+    var wide = ctx.format === "16:9";
+    var hasCopy = !!(c.title || c.subtitle);
+    var wrap = h.el("div", "wrap" + (wide ? "" : " stacked"));
+
+    // the screen's size: phones are portrait, browsers and laptops follow the screenshot (within reason)
+    var screenAspect = device === "phone" ? 0.46 : Math.max(1.3, Math.min(2, aspect));
+    var areaW = (wide ? (hasCopy ? ctx.W * 0.52 : ctx.W * 0.7) : ctx.W - 14 * u) / (device === "laptop" ? 1.16 : 1) - (device === "browser" ? 0 : 3 * u);
+    var areaH = wide ? ctx.H * 0.74 : ctx.H * (hasCopy ? (ctx.format === "9:16" ? 0.6 : 0.58) : 0.8);
+    var chrome = device === "browser" ? 4.4 * u : device === "laptop" ? 4.4 * u : 2.8 * u; // bar / bezel + base
+    var sw = Math.min(areaW, (areaH - chrome) * screenAspect);
+    var sh = sw / screenAspect;
+
+    var stage = h.el("div", "stage");
+    var dev = h.el("div", "device");
+    var screen = h.el("div", "screen");
+    screen.style.width = sw + "px";
+    screen.style.height = sh + "px";
+    var pic = h.el("img");
+    if (img) pic.src = img.src;
+    screen.append(pic);
+    if (device === "browser") {
+      dev.className = "device browser bezel";
+      var bar = h.el("div", "bar");
+      bar.append(h.el("span", "dot"), h.el("span", "dot"), h.el("span", "dot"), h.el("span", "url", ctx.brand.name));
+      dev.append(bar, screen);
+    } else if (device === "laptop") {
+      dev.className = "device";
+      var lid = h.el("div", "lid bezel");
+      lid.append(screen);
+      var base = h.el("div", "base bezel");
+      base.style.width = sw * 1.16 + "px";
+      base.style.marginLeft = -sw * 0.08 + "px";
+      dev.append(lid, base);
+    } else {
+      dev.className = "device phone bezel";
+      dev.style.position = "relative";
+      dev.append(h.el("div", "notch"), screen);
+    }
+    stage.append(dev);
+
+    var titleWords = [], sub = null;
+    var copy = h.el("div", "copy");
+    if (c.title) {
+      var title = h.el("div", "title");
+      title.style.fontSize = h.fit(c.title, { width: wide ? ctx.W * 0.32 : ctx.W - 16 * u, lines: wide ? 3 : 2, size: (wide ? 7 : 6.4) * u }) + "px";
+      titleWords = h.words(title, c.title);
+      copy.append(title);
+    }
+    if (c.subtitle) {
+      sub = h.el("div", "sub", c.subtitle);
+      copy.append(sub);
+    }
+    if (hasCopy && wide) wrap.append(copy, stage);
+    else if (hasCopy) wrap.append(copy, stage);
+    else wrap.append(stage);
+    ctx.el.append(wrap);
+
+    var t0 = ctx.t0, hit = ctx.accent;
+    tl.fromTo(dev, { autoAlpha: 0, y: 10 * u, rotationX: 22, scale: 0.92 }, { autoAlpha: 1, y: 0, rotationX: 0, scale: 1, duration: 0.95, ease: "power3.out" }, hit);
+    // a tall screenshot scrolls; one that fits zooms in slowly
+    var imgH = sw / aspect;
+    var hold = Math.max(0.6, ctx.t1 - hit - 1.1);
+    if (imgH > sh * 1.15) tl.fromTo(pic, { y: 0 }, { y: -(imgH - sh), duration: hold, ease: "sine.inOut", immediateRender: false }, hit + 0.9);
+    else tl.fromTo(pic, { scale: 1 }, { scale: 1.08, duration: Math.max(0.6, ctx.t1 - hit), ease: "none", immediateRender: false }, hit);
+    if (titleWords.length) A.reveal(titleWords, ctx.wordTimes(titleWords, t0 + 0.3, 0.06));
+    if (sub) A.rise(sub, Math.min(t0 + 0.9, ctx.t1 - 0.8), { y: 2 * u });
+  });
+</script>

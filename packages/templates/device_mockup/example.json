@@ -1,0 +1,14 @@
+{
+  "content": {
+    "image": "website",
+    "device": "laptop",
+    "title": "Your site, in motion",
+    "subtitle": "Frameflow reads your website and builds the video around it."
+  },
+  "voiceover": "Your site, in motion. Frameflow reads your website and builds around it.",
+  "estDuration": 5.2,
+  "assets": {
+    "website": { "file": "../_assets/example-desktop.png", "width": 2880, "height": 1800, "description": "the website's first screen on a desktop browser" },
+    "website-mobile": { "file": "../_assets/example-mobile.png", "width": 780, "height": 1688, "description": "the website on a phone (portrait)" }
+  }
+}

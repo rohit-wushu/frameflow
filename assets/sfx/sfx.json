@@ -1,0 +1,74 @@
+{
+  "sounds": [
+    {
+      "id": "whoosh",
+      "file": "whoosh.wav",
+      "description": "Airy whoosh for scene cuts; peaks at the cut",
+      "duration": 0.75,
+      "hitOffset": 0.413,
+      "gain": 0.55,
+      "source": "Synthesized by services/audio/scripts/build_sfx_library.py",
+      "license": "CC0-1.0"
+    },
+    {
+      "id": "swoosh",
+      "file": "swoosh.wav",
+      "description": "Short bright swoosh for small moves and slides",
+      "duration": 0.38,
+      "hitOffset": 0.171,
+      "gain": 0.45,
+      "source": "Synthesized by services/audio/scripts/build_sfx_library.py",
+      "license": "CC0-1.0"
+    },
+    {
+      "id": "riser",
+      "file": "riser.wav",
+      "description": "2 s tension riser that ends exactly on the next hit",
+      "duration": 2.0,
+      "hitOffset": 2.0,
+      "gain": 0.4,
+      "source": "Synthesized by services/audio/scripts/build_sfx_library.py",
+      "license": "CC0-1.0"
+    },
+    {
+      "id": "impact",
+      "file": "impact.wav",
+      "description": "Deep cinematic hit for logo reveals and big moments",
+      "duration": 1.8,
+      "hitOffset": 0.005,
+      "gain": 0.8,
+      "source": "Synthesized by services/audio/scripts/build_sfx_library.py",
+      "license": "CC0-1.0"
+    },
+    {
+      "id": "pop",
+      "file": "pop.wav",
+      "description": "Soft bubbly pop for list items appearing",
+      "duration": 0.11,
+      "hitOffset": 0.0,
+      "gain": 0.5,
+      "source": "Kenney Interface Sounds (https://kenney.nl/assets/interface-sounds), file drop_001.ogg",
+      "license": "CC0-1.0"
+    },
+    {
+      "id": "click",
+      "file": "click.wav",
+      "description": "Crisp UI click for buttons and small UI changes",
+      "duration": 0.1,
+      "hitOffset": 0.0,
+      "gain": 0.45,
+      "source": "Kenney Interface Sounds (https://kenney.nl/assets/interface-sounds), file click_001.ogg",
+      "license": "CC0-1.0"
+    },
+    {
+      "id": "ding",
+      "file": "ding.wav",
+      "description": "Bright chime for success moments and stats",
+      "duration": 0.539,
+      "hitOffset": 0.0,
+      "gain": 0.45,
+      "source": "Kenney Interface Sounds (https://kenney.nl/assets/interface-sounds), file confirmation_002.ogg",
+      "license": "CC0-1.0"
+    }
+  ]
+}

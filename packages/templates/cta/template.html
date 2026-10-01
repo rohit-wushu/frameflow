@@ -1,0 +1,66 @@
+<style>
+  .t-cta .wrap { display: flex; flex-direction: column; align-items: center; gap: calc(var(--u) * 3); }
+  .t-cta .headline { font-family: var(--heading-font); font-weight: 700; line-height: 1.06; letter-spacing: -0.025em; color: var(--text); }
+  .t-cta .subline { font: 400 calc(var(--u) * 3) / 1.4 var(--body-font); color: var(--muted); max-width: calc(var(--u) * 110); }
+  .t-cta .btn-wrap { position: relative; margin-top: calc(var(--u) * 1.6); }
+  .t-cta .btn {
+    position: relative; overflow: hidden; display: inline-block; font: 600 calc(var(--u) * 3.4) / 1 var(--body-font);
+    color: var(--on-primary); background: var(--primary); padding: calc(var(--u) * 2.5) calc(var(--u) * 5.6); border-radius: 999px;
+    box-shadow: 0 calc(var(--u) * 1.4) calc(var(--u) * 5) color-mix(in srgb, var(--primary) 40%, transparent);
+  }
+  .t-cta .shine { position: absolute; top: 0; bottom: 0; left: -40%; width: 40%; background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.5), transparent); }
+  .t-cta .ripple {
+    position: absolute; left: 50%; top: 50%; width: calc(var(--u) * 12); height: calc(var(--u) * 12);
+    margin: calc(var(--u) * -6) 0 0 calc(var(--u) * -6); border-radius: 50%; border: calc(var(--u) * 0.5) solid var(--primary); opacity: 0;
+  }
+  .t-cta .cursor { position: absolute; left: 62%; top: 58%; width: calc(var(--u) * 5.2); height: calc(var(--u) * 5.2); }
+  .t-cta .url { font: 500 calc(var(--u) * 2.5) / 1 var(--body-font); color: var(--muted); letter-spacing: 0.04em; }
+</style>
+<script>
+  FF.register("cta", function (ctx) {
+    var h = ctx.h, A = h.A, c = ctx.content, tl = ctx.tl, u = ctx.u;
+    var wrap = h.el("div", "wrap");
+    var head = h.el("div", "headline");
+    head.style.fontSize = h.fit(c.headline, { width: ctx.W - 16 * u, lines: ctx.format === "9:16" ? 4 : 2, size: (ctx.format === "16:9" ? 9 : 8.5) * u }) + "px";
+    var words = h.words(head, c.headline);
+    wrap.append(head);
+    var sub = c.subline ? h.el("div", "subline", c.subline) : null;
+    if (sub) wrap.append(sub);
+
+    var btnWrap = h.el("div", "btn-wrap");
+    var btn = h.el("div", "btn");
+    btn.append(document.createTextNode(c.buttonText));
+    var shine = h.el("span", "shine");
+    btn.append(shine);
+    var ripple = h.el("div", "ripple");
+    var cursor = h.el("div", "cursor");
+    cursor.innerHTML = '<svg viewBox="0 0 24 24" width="100%" height="100%"><path d="M4 2.5l15 8.2-6.6 1.7L9.1 19z" fill="#fff" stroke="#111" stroke-width="1.4" stroke-linejoin="round"/></svg>';
+    btnWrap.append(ripple, btn, cursor);
+    wrap.append(btnWrap);
+    var url = c.url ? h.el("div", "url", c.url) : null;
+    if (url) wrap.append(url);
+    ctx.el.append(wrap);
+
+    var t0 = ctx.t0, click = ctx.accent;
+    var times = ctx.wordTimes(words, t0 + 0.1, 0.06);
+    A.reveal(words, times);
+    var headDone = times[times.length - 1];
+    if (sub) A.rise(sub, headDone + 0.2, { y: 2 * u });
+    A.pop(btn, Math.min(Math.max(headDone + 0.15, t0 + 0.5), click - 0.7), { from: 0.7, d: 0.5 });
+
+    // the cursor glides in and clicks the button on the accent (the click sound lands there too)
+    tl.fromTo(cursor, { autoAlpha: 0, x: 16 * u, y: 12 * u }, { autoAlpha: 1, x: 0, y: 0, duration: 0.6, ease: "power2.inOut" }, click - 0.62);
+    tl.to(btn, { scale: 0.94, duration: 0.07, ease: "power1.in" }, click);
+    tl.to(cursor, { scale: 0.85, duration: 0.07 }, click);
+    tl.to(btn, { scale: 1, duration: 0.35, ease: "back.out(2)" }, click + 0.07);
+    tl.to(cursor, { scale: 1, duration: 0.2 }, click + 0.07);
+    tl.fromTo(ripple, { opacity: 0.8, scale: 0.6 }, { opacity: 0, scale: 2.6, duration: 0.7, ease: "power2.out", immediateRender: false }, click);
+    tl.fromTo(shine, { xPercent: 0 }, { xPercent: 350, duration: 0.8, ease: "power2.inOut", immediateRender: false }, click + 0.05);
+    tl.to(cursor, { autoAlpha: 0, x: 6 * u, y: 8 * u, duration: 0.5, ease: "power2.in" }, click + 0.5);
+    if (url) A.rise(url, click + 0.25, { y: 1.5 * u });
+    // after the click the button breathes on the beat
+    ctx.beats.forEach(function (b) {
+      if (b > click + 0.6 && b < ctx.t1 - 0.2) A.bump(btn, b, { scale: 1.035 });
+    });
+  });
+</script>

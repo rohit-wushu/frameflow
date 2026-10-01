@@ -1,0 +1,45 @@
+<!doctype html>
+<!-- A made-up product page, rendered to the example screenshots (pnpm --dir packages/templates exec tsx scripts/example-assets.ts) -->
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  * { box-sizing: border-box; margin: 0; }
+  body { font: 16px/1.5 -apple-system, "Helvetica Neue", Arial, sans-serif; background: #0d0d17; color: #f2f2f7; }
+  header { display: flex; align-items: center; gap: 32px; padding: 20px 56px; border-bottom: 1px solid #23233a; }
+  .logo { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 20px; }
+  .mark { width: 28px; height: 28px; border-radius: 8px; background: linear-gradient(135deg, #7c5cff, #22d3ee); }
+  nav { display: flex; gap: 28px; color: #a3a3c2; font-size: 15px; }
+  .grow { flex: 1; }
+  .ghost { color: #c8c8e0; font-size: 15px; }
+  main { display: grid; grid-template-columns: 1.05fr 1fr; gap: 56px; align-items: center; padding: 72px 56px 40px; }
+  .pill { display: inline-block; padding: 6px 14px; border-radius: 99px; background: #1d1a3a; color: #b9a8ff; font-size: 13px; margin-bottom: 22px; }
+  h1 { font-size: 60px; line-height: 1.04; letter-spacing: -0.03em; margin-bottom: 20px; }
+  h1 em { font-style: normal; color: #9c85ff; }
+  p.lead { font-size: 19px; color: #a9a9c6; max-width: 520px; margin-bottom: 32px; }
+  .cta { display: inline-block; padding: 16px 28px; border-radius: 12px; background: #7c5cff; color: #fff; font-weight: 600; font-size: 17px; text-decoration: none; }
+  .note { margin-top: 16px; color: #7d7d9c; font-size: 14px; }
+  .app { border-radius: 18px; background: #161627; border: 1px solid #2a2a44; padding: 18px; box-shadow: 0 30px 80px rgba(0,0,0,.5); }
+  .bar { display: flex; gap: 7px; margin-bottom: 14px; } .bar i { width: 11px; height: 11px; border-radius: 50%; background: #34344f; }
+  .preview { height: 230px; border-radius: 12px; background: radial-gradient(circle at 30% 30%, #4b3aa8, #15152a 70%); display: grid; place-items: center; font-size: 30px; font-weight: 700; }
+  .track { display: grid; grid-template-columns: 2fr 1fr 1.4fr 1fr; gap: 6px; margin-top: 14px; }
+  .track b { height: 34px; border-radius: 8px; background: #2b2550; } .track b:nth-child(2) { background: #1f3d4a; } .track b:nth-child(4) { background: #3a2a4d; }
+  .wave { height: 26px; margin-top: 8px; border-radius: 6px; background: repeating-linear-gradient(90deg, #5b4bc4 0 2px, transparent 2px 6px); opacity: .7; }
+  @media (max-width: 600px) {
+    header { padding: 16px 20px; } nav, .ghost { display: none; }
+    main { grid-template-columns: 1fr; padding: 36px 20px; gap: 32px; }
+    h1 { font-size: 40px; } p.lead { font-size: 17px; }
+    .preview { height: 170px; }
+  }
+</style></head>
+<body>
+<header><div class="logo"><span class="mark"></span>Frameflow</div><nav><span>Product</span><span>Templates</span><span>Pricing</span><span>Docs</span></nav><span class="grow"></span><span class="ghost">Log in</span></header>
+<main>
+  <div>
+    <span class="pill">New: beat-synced cuts</span>
+    <h1>Type one line. <em>Get a finished video.</em></h1>
+    <p class="lead">Script, voiceover, music and motion design, made for you in minutes and cut on the beat.</p>
+    <a class="cta" href="#">Make your first video</a>
+    <div class="note">Free to start · No editing skills needed</div>
+  </div>
+  <div class="app"><div class="bar"><i></i><i></i><i></i></div><div class="preview">Your launch video</div><div class="track"><b></b><b></b><b></b><b></b></div><div class="wave"></div></div>
+</main>
+</body></html>

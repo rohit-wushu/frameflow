@@ -1,0 +1,58 @@
+<style>
+  .t-feature_grid .wrap { display: flex; flex-direction: column; align-items: center; gap: calc(var(--u) * 5); width: 100%; }
+  .t-feature_grid .title { font-family: var(--heading-font); font-weight: 700; line-height: 1.08; letter-spacing: -0.02em; color: var(--text); }
+  .t-feature_grid .grid { display: grid; gap: calc(var(--u) * 2.4); width: 100%; }
+  .t-feature_grid .card {
+    position: relative; display: flex; flex-direction: column; align-items: flex-start; gap: calc(var(--u) * 2); text-align: left;
+    padding: calc(var(--u) * 3.2) calc(var(--u) * 3); border-radius: calc(var(--u) * 2.4); background: var(--card); border: 2px solid var(--line);
+  }
+  .t-feature_grid .ring { position: absolute; inset: -2px; border-radius: inherit; border: 2px solid var(--primary); opacity: 0; }
+  .t-feature_grid .icon {
+    width: calc(var(--u) * 7.6); height: calc(var(--u) * 7.6); flex: none; display: grid; place-items: center;
+    border-radius: calc(var(--u) * 1.9); color: var(--primary); background: color-mix(in srgb, var(--primary) 15%, transparent);
+  }
+  .t-feature_grid .icon .ff-icon { width: 58%; height: 58%; }
+  .t-feature_grid .body { display: flex; flex-direction: column; gap: calc(var(--u) * 0.9); }
+  .t-feature_grid .ctitle { font: 700 calc(var(--u) * 3.2) / 1.15 var(--heading-font); color: var(--text); letter-spacing: -0.01em; }
+  .t-feature_grid .ctext { font: 400 calc(var(--u) * 2.2) / 1.4 var(--body-font); color: var(--muted); }
+  /* one column: icon on the left, text on the right */
+  .t-feature_grid .rows .card { flex-direction: row; align-items: center; gap: calc(var(--u) * 2.6); }
+</style>
+<script>
+  FF.register("feature_grid", function (ctx) {
+    var h = ctx.h, A = h.A, c = ctx.content, tl = ctx.tl, u = ctx.u;
+    var n = c.items.length;
+    var cols = ctx.format === "16:9" ? n : ctx.format === "1:1" && n === 4 ? 2 : 1;
+
+    var wrap = h.el("div", "wrap");
+    var title = h.el("div", "title");
+    title.style.fontSize = h.fit(c.title, { width: ctx.W - 16 * u, lines: 2, size: 6.2 * u }) + "px";
+    var titleWords = h.words(title, c.title);
+    var grid = h.el("div", "grid" + (cols === 1 ? " rows" : ""));
+    grid.style.gridTemplateColumns = "repeat(" + cols + ", minmax(0, 1fr))";
+    grid.style.maxWidth = (cols === 1 ? 86 : cols === 2 ? 110 : cols === 3 ? 150 : 166) * u + "px";
+    wrap.append(title, grid);
+    ctx.el.append(wrap);
+
+    var cards = c.items.map(function (item) {
+      var card = h.el("div", "card"), ring = h.el("div", "ring"), ic = h.el("div", "icon");
+      var glyph = h.icon(item.icon);
+      ic.append(glyph);
+      var body = h.el("div", "body");
+      body.append(h.el("div", "ctitle", item.title));
+      if (item.text) body.append(h.el("div", "ctext", item.text));
+      card.append(ring, ic, body);
+      grid.append(card);
+      return { card: card, ring: ring, glyph: glyph };
+    });
+
+    A.reveal(titleWords, ctx.wordTimes(titleWords, ctx.t0 + 0.1, 0.05));
+    // each card lands on its reveal time from the timing step (the narrator's word for it)
+    cards.forEach(function (k, i) {
+      var at = ctx.items[i];
+      tl.fromTo(k.card, { autoAlpha: 0, y: 4 * u, scale: 0.94 }, { autoAlpha: 1, y: 0, scale: 1, duration: 0.55, ease: "back.out(1.6)" }, at);
+      A.draw(k.glyph, at + 0.05, 0.5);
+      tl.fromTo(k.ring, { opacity: 0.9 }, { opacity: 0, duration: 1.2, ease: "power2.out", immediateRender: false }, at);
+    });
+  });
+</script>

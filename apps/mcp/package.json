@@ -1,0 +1,19 @@
+{
+  "name": "@frameflow/mcp",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@frameflow/director": "workspace:*",
+    "@frameflow/mixer": "workspace:*",
+    "@frameflow/pipeline": "workspace:*",
+    "@frameflow/scene-schema": "workspace:*",
+    "@frameflow/templates": "workspace:*",
+    "@modelcontextprotocol/sdk": "^1.31.0",
+    "zod": "^4.1.0"
+  },
+  "scripts": {},
+  "devDependencies": {
+    "@types/express": "^5.0.6"
+  }
+}

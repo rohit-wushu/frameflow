@@ -1,0 +1,68 @@
+<style>
+  .t-stat_counter .stat { display: flex; flex-direction: column; align-items: center; gap: calc(var(--u) * 2.6); }
+  .t-stat_counter .num {
+    display: flex; align-items: flex-start; font-family: var(--heading-font); font-weight: 700; line-height: 1.1;
+    letter-spacing: -0.03em; color: var(--text); font-variant-numeric: tabular-nums; white-space: pre;
+  }
+  .t-stat_counter .affix { color: var(--primary); }
+  /* clip only top and bottom: some digits (a flagged "1") reach past their box sideways */
+  .t-stat_counter .col { display: inline-block; height: 1.1em; clip-path: inset(0 -0.3em); letter-spacing: 0; }
+  .t-stat_counter .strip { display: flex; flex-direction: column; }
+  .t-stat_counter .strip span, .t-stat_counter .sep { display: block; height: 1.1em; }
+  .t-stat_counter .bar {
+    width: calc(var(--u) * 16); height: calc(var(--u) * 0.9); border-radius: 999px; transform-origin: 0 50%;
+    background: linear-gradient(90deg, var(--primary), var(--secondary));
+  }
+  .t-stat_counter .label { font: 500 calc(var(--u) * 3.8) / 1.3 var(--body-font); color: var(--text); max-width: calc(var(--u) * 110); }
+  .t-stat_counter .context { font: 500 calc(var(--u) * 1.9) / 1.3 var(--body-font); color: var(--muted); text-transform: uppercase; letter-spacing: 0.14em; }
+</style>
+<script>
+  FF.register("stat_counter", function (ctx) {
+    var h = ctx.h, A = h.A, c = ctx.content, tl = ctx.tl, u = ctx.u;
+    var decimals = c.decimals || 0;
+    var text = Number(c.value).toLocaleString("en-US", { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+    var chars = (c.prefix || "").length + text.length + (c.suffix || "").length;
+    var size = Math.min((ctx.format === "9:16" ? 22 : 24) * u, (ctx.W - 16 * u) / (chars * 0.62));
+
+    var box = h.el("div", "stat");
+    var num = h.el("div", "num");
+    num.style.fontSize = size + "px";
+    if (c.prefix) num.append(h.el("span", "affix", c.prefix));
+    // odometer: one column per digit; trailing digits spin more than leading ones
+    var digits = text.replace(/\D/g, "").length, seen = 0, strips = [];
+    Array.from(text).forEach(function (ch) {
+      if (!/\d/.test(ch)) { num.append(h.el("span", "sep", ch)); return; }
+      var spins = Math.min(3, digits - seen - 1) + 1;
+      seen++;
+      var col = h.el("span", "col"), strip = h.el("span", "strip");
+      var cells = spins * 10 + Number(ch) + 1;
+      for (var k = 0; k < cells; k++) strip.append(h.el("span", null, k % 10));
+      col.append(strip);
+      num.append(col);
+      strips.push({ strip: strip, target: (-(cells - 1) / cells) * 100 });
+    });
+    if (c.suffix) num.append(h.el("span", "affix", c.suffix));
+    var bar = h.el("div", "bar");
+    var label = h.el("div", "label", c.label);
+    box.append(num, bar, label);
+    var context = c.context ? h.el("div", "context", c.context) : null;
+    if (context) box.append(context);
+    ctx.el.append(box);
+
+    // the count starts on the spoken number (the first spoken word with a digit), else just after the cut
+    var spoken = ctx.words.find(function (w) { return /\d/.test(w.w); });
+    var start = spoken ? Math.max(ctx.t0 + 0.15, spoken.s - 0.1) : ctx.t0 + 0.35;
+    var count = Math.max(0.6, Math.min(1.4, ctx.t1 - start - 0.8));
+    A.pop(num, ctx.t0 + 0.05, { from: 0.85, d: 0.5, ease: "power3.out" });
+    strips.forEach(function (s, i) {
+      tl.fromTo(s.strip, { yPercent: 0 }, { yPercent: s.target, duration: count, ease: "power3.out" }, start + i * 0.04);
+    });
+    tl.fromTo(bar, { scaleX: 0 }, { scaleX: 1, duration: count, ease: "power3.out" }, start);
+    A.rise(label, start + 0.2, { y: 2.5 * u });
+    if (context) A.fade(context, start + 0.5);
+    // land the finished number on the next beat
+    var end = start + count + strips.length * 0.04;
+    var beat = ctx.beats.find(function (b) { return b >= end - 0.05; });
+    A.bump(num, beat !== undefined && beat < ctx.t1 - 0.3 ? beat : end, { scale: 1.05 });
+  });
+</script>

@@ -1,0 +1,22 @@
+{
+  "name": "@frameflow/worker",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@frameflow/db": "workspace:*",
+    "@frameflow/director": "workspace:*",
+    "@frameflow/jobs": "workspace:*",
+    "@frameflow/pipeline": "workspace:*",
+    "@frameflow/scene-schema": "workspace:*",
+    "@frameflow/templates": "workspace:*",
+    "bullmq": "^6.3.10"
+  },
+  "scripts": {
+    "dev": "tsx src/index.ts",
+    "start": "tsx src/index.ts"
+  },
+  "devDependencies": {
+    "tsx": "^4.23.15"
+  }
+}

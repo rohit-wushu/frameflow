@@ -1,0 +1,32 @@
+{
+  "desktop": {
+    "file": "example-desktop.png",
+    "width": 2880,
+    "height": 1800,
+    "regions": {
+      "headline": {
+        "x": 3.9,
+        "y": 21.8,
+        "w": 45.2,
+        "h": 13.9
+      },
+      "button": {
+        "x": 3.9,
+        "y": 47.8,
+        "w": 15.7,
+        "h": 6.4
+      },
+      "nav": {
+        "x": 0,
+        "y": 0,
+        "w": 100,
+        "h": 7.9
+      }
+    }
+  },
+  "mobile": {
+    "file": "example-mobile.png",
+    "width": 780,
+    "height": 1688
+  }
+}

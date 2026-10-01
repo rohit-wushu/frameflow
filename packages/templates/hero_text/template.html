@@ -1,0 +1,66 @@
+<style>
+  .t-hero_text .hero { position: relative; display: flex; flex-direction: column; align-items: center; gap: calc(var(--u) * 2.6); }
+  .t-hero_text .halo {
+    position: absolute; left: 50%; top: 50%; width: calc(var(--u) * 110); height: calc(var(--u) * 110);
+    margin: calc(var(--u) * -55) 0 0 calc(var(--u) * -55); border-radius: 50%;
+    background: radial-gradient(circle, color-mix(in srgb, var(--primary) 22%, transparent) 0%, transparent 62%);
+  }
+  .t-hero_text .eyebrow {
+    font: 600 calc(var(--u) * 2.2) / 1 var(--body-font); letter-spacing: 0.16em; text-transform: uppercase; color: var(--primary);
+    padding: calc(var(--u) * 1.1) calc(var(--u) * 2.2); border: 2px solid color-mix(in srgb, var(--primary) 50%, transparent); border-radius: 999px;
+  }
+  .t-hero_text .headline { font-family: var(--heading-font); font-weight: 700; line-height: 1.06; letter-spacing: -0.025em; color: var(--text); }
+  .t-hero_text .hlw { position: relative; }
+  .t-hero_text .underline {
+    position: absolute; left: 0; right: 0; bottom: 0.02em; height: 0.08em; border-radius: 0.04em;
+    background: var(--secondary); transform-origin: 0 50%; transform: scaleX(0);
+  }
+  .t-hero_text .sub { font: 400 calc(var(--u) * 3) / 1.4 var(--body-font); color: var(--muted); max-width: calc(var(--u) * 120); }
+</style>
+<script>
+  FF.register("hero_text", function (ctx) {
+    var h = ctx.h, A = h.A, c = ctx.content, tl = ctx.tl, u = ctx.u;
+    var halo = h.el("div", "halo");
+    var box = h.el("div", "hero");
+    ctx.el.append(halo, box);
+
+    var eyebrow = c.eyebrow ? h.el("div", "eyebrow", c.eyebrow) : null;
+    if (eyebrow) box.append(eyebrow);
+
+    var head = h.el("div", "headline");
+    var width = ctx.W - 16 * u;
+    head.style.maxWidth = width + "px";
+    head.style.fontSize = h.fit(c.headline, { width: width, lines: ctx.format === "9:16" ? 5 : 3, size: (ctx.format === "16:9" ? 11 : 10.5) * u }) + "px";
+    box.append(head);
+    var spans = h.words(head, c.headline);
+
+    var sub = c.subtext ? h.el("div", "sub", c.subtext) : null;
+    if (sub) box.append(sub);
+
+    // the highlight word gets the brand color and an underline when it is spoken
+    var hl = null, underline = null;
+    if (c.highlight) {
+      var key = h.norm(c.highlight);
+      hl = spans.find(function (s) { return h.norm(s.textContent) === key; }) || null;
+      if (hl) {
+        hl.classList.add("hlw");
+        underline = h.el("span", "underline");
+        hl.append(underline);
+      }
+    }
+
+    var t0 = ctx.t0;
+    tl.fromTo(halo, { autoAlpha: 0, scale: 0.6 }, { autoAlpha: 1, scale: 1, duration: 1.4, ease: "power2.out" }, t0);
+    tl.to(halo, { scale: 1.12, duration: Math.max(0.5, ctx.dur - 1.4), ease: "none" }, t0 + 1.4);
+    if (eyebrow) A.rise(eyebrow, t0 + 0.05, { y: 2 * u, d: 0.5 });
+    var times = ctx.wordTimes(spans, t0 + (eyebrow ? 0.18 : 0.1), 0.07);
+    A.reveal(spans, times);
+    var shown = times[times.length - 1] + 0.3;
+    if (hl) {
+      var at = Math.max(ctx.say(hl.textContent, t0 - 0.01, shown), times[spans.indexOf(hl)] + 0.15);
+      tl.to(hl, { color: ctx.brand.colors.primary, duration: 0.2, ease: "power1.out" }, at);
+      tl.to(underline, { scaleX: 1, duration: 0.45, ease: "power3.out" }, at);
+    }
+    if (sub) A.rise(sub, Math.min(shown + 0.1, ctx.t1 - 0.8), { y: 2.5 * u });
+  });
+</script>

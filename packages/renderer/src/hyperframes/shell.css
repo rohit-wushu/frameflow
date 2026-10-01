@@ -1,0 +1,38 @@
+/* Frameflow composition shell. Brand tokens (--bg, --primary, ...) and sizes (--W, --H, --u) are set on :root per video. */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { background: var(--bg); }
+#root {
+  position: relative; width: var(--W); height: var(--H); overflow: hidden;
+  background: var(--bg); color: var(--text); font-family: var(--body-font);
+  -webkit-font-smoothing: antialiased; text-rendering: geometricPrecision;
+}
+.layer { position: absolute; left: 0; top: 0; width: var(--W); height: var(--H); }
+.scene { visibility: hidden; opacity: 0; }
+.scene-inner {
+  position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  text-align: center; padding: calc(var(--u) * 8);
+}
+[data-format="9:16"] .scene-inner { padding: calc(var(--u) * 10) calc(var(--u) * 7); }
+
+/* word masks keep descenders visible without changing the line box */
+.ff-mask { display: inline-block; overflow: hidden; vertical-align: bottom; padding: 0.04em 0 0.14em; margin: -0.04em 0 -0.14em; }
+.ff-w, .ff-l { display: inline-block; }
+.ff-icon { display: inline-block; }
+.ff-icon svg { width: 100%; height: 100%; display: block; }
+.ff-icon [pathLength] { stroke-dasharray: 1; }
+
+/* background glows: two only (many radial gradients or blurs caused black frames in HyperFrames) */
+.ff-glow { position: absolute; width: calc(var(--u) * 80); height: calc(var(--u) * 80); border-radius: 50%; }
+.ff-glow-a { left: calc(var(--u) * -22); top: calc(var(--u) * -28); background: radial-gradient(circle, color-mix(in srgb, var(--primary) 30%, transparent) 0%, transparent 68%); }
+.ff-glow-b { right: calc(var(--u) * -24); bottom: calc(var(--u) * -30); background: radial-gradient(circle, color-mix(in srgb, var(--secondary) 24%, transparent) 0%, transparent 68%); }
+
+#wipe { background: var(--primary); pointer-events: none; }
+#fade { background: #000; opacity: 1; pointer-events: none; }
+
+/* captions: bottom band only */
+.ff-cap { position: absolute; left: 0; right: 0; bottom: calc(var(--u) * 5); display: flex; justify-content: center; visibility: hidden; }
+[data-format="9:16"] .ff-cap { bottom: calc(var(--u) * 18); }
+.ff-cap-box {
+  max-width: 82%; padding: calc(var(--u) * 1.1) calc(var(--u) * 2.4); border-radius: calc(var(--u) * 1.4);
+  background: rgba(0, 0, 0, 0.62); color: #fff; font: 600 calc(var(--u) * 3.4) / 1.3 var(--body-font);
+}
