@@ -6,7 +6,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectSeparator, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { catalog, voiceInfo, voicesFor } from "@/lib/catalog";
+import { VoiceAvatar } from "@/components/voice-avatar";
+import { catalog, voiceDescription, voiceInfo, voiceName, voicesFor, type VoiceInfo } from "@/lib/catalog";
+import { cn } from "@/lib/utils";
 
 export interface PlanVoice {
   engine: string;
@@ -57,9 +59,11 @@ export function VoiceSelect({ value, language, onChange, allowSame, size }: { va
   const free = voices.filter((v) => v.tier === "free");
   const pro = voices.filter((v) => v.tier === "pro");
   const item = (v: (typeof voices)[number]) => (
-    <SelectItem key={v.id} value={v.id}>
-      <span className="flex items-center gap-2">
-        {v.label}
+    <SelectItem key={v.id} value={v.id} className="py-1.5">
+      <span className="flex min-w-0 items-center gap-2.5">
+        <VoiceAvatar voice={v} size={size === "sm" ? 22 : 28} badge={false} />
+        <span className="truncate font-medium">{voiceName(v)}</span>
+        <span className="truncate text-xs text-muted-foreground">{voiceDescription(v)}</span>
         <span className="text-[10px] text-muted-foreground">{v.engine === "kokoro" ? "Fast" : "Natural"}</span>
         {v.tier === "pro" && <Badge className="h-4 px-1.5 text-[10px]">Pro</Badge>}
       </span>
@@ -142,6 +146,69 @@ export function VoicePanel({ voice, language, onChange, isPro }: { voice: PlanVo
           </SelectContent>
         </Select>
       </div>
+    </div>
+  );
+}
+
+// Voice cards for the new video form: the language's voices with avatars, a preview each, and "let the director pick".
+export function VoiceCards({ language, value, onChange, isPro }: { language: string; value: string; onChange: (id: string) => void; isPro: boolean }) {
+  const voices = voicesFor(language);
+  const card = (v: VoiceInfo) => {
+    const active = value === v.id;
+    return (
+      <div
+        key={v.id}
+        role="radio"
+        aria-checked={active}
+        tabIndex={0}
+        onClick={() => onChange(v.id)}
+        onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && (e.preventDefault(), onChange(v.id))}
+        className={cn(
+          "group flex cursor-pointer items-center gap-3 rounded-xl border p-3 transition",
+          active ? "border-primary/70 bg-primary/10 ring-1 ring-primary/40" : "border-white/[0.08] bg-white/[0.02] hover:border-white/20 hover:bg-white/[0.04]",
+        )}
+      >
+        <VoiceAvatar voice={v} size={42} />
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-1.5">
+            <span className="truncate text-sm font-medium">{voiceName(v)}</span>
+            {v.tier === "pro" && <Badge className="h-4 px-1.5 text-[10px]">Pro</Badge>}
+          </div>
+          <div className="truncate text-xs text-muted-foreground">
+            {[voiceDescription(v), v.engine === "kokoro" ? "Fast" : "Natural"].filter(Boolean).join(" · ")}
+          </div>
+        </div>
+        <span onClick={(e) => e.stopPropagation()}>
+          <PreviewButton voiceId={v.id} language={language} />
+        </span>
+      </div>
+    );
+  };
+  return (
+    <div className="space-y-3">
+      <div role="radiogroup" aria-label="Voice" className="grid grid-cols-[minmax(0,1fr)] gap-2.5 sm:grid-cols-2">
+        <div
+          role="radio"
+          aria-checked={value === ""}
+          tabIndex={0}
+          onClick={() => onChange("")}
+          onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && (e.preventDefault(), onChange(""))}
+          className={cn(
+            "flex cursor-pointer items-center gap-3 rounded-xl border p-3 transition",
+            value === "" ? "border-primary/70 bg-primary/10 ring-1 ring-primary/40" : "border-white/[0.08] bg-white/[0.02] hover:border-white/20 hover:bg-white/[0.04]",
+          )}
+        >
+          <span className="flex size-[42px] items-center justify-center rounded-full bg-[linear-gradient(135deg,var(--brand-violet),var(--brand-teal))] text-lg">✨</span>
+          <div>
+            <div className="text-sm font-medium">Let the director pick</div>
+            <div className="text-xs text-muted-foreground">A free voice that suits the video</div>
+          </div>
+        </div>
+        {voices.map(card)}
+      </div>
+      {!isPro && voices.some((v) => v.id === value && v.tier === "pro") && (
+        <p className="text-xs text-muted-foreground">Pro voice: you can make and watch the video with a watermark; downloading it needs Pro.</p>
+      )}
     </div>
   );
 }

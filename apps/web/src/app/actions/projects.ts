@@ -8,7 +8,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { requireUser } from "@/lib/auth";
-import { catalog } from "@/lib/catalog";
+import { catalog, voicesFor } from "@/lib/catalog";
 import { ownProject } from "@/lib/data";
 import { allow } from "@/lib/rate-limit";
 import { storagePath, writeStorage } from "@/lib/storage";
@@ -46,6 +46,7 @@ const NewProjectSchema = z.object({
   language: z.enum(LANGUAGES),
   logoUpload: z.string().optional(),
   brandKit: z.string().optional(),
+  voiceId: z.string().optional(),
 });
 
 export type NewProjectState = { error?: string } | undefined;
@@ -62,9 +63,11 @@ export async function createProject(_: NewProjectState, form: FormData): Promise
     language: form.get("language") ?? "en",
     logoUpload: (form.get("logoUpload") as string) || undefined,
     brandKit: (form.get("brandKit") as string) || undefined,
+    voiceId: (form.get("voiceId") as string) || undefined,
   });
   if (!parsed.success) return { error: parsed.error.issues[0].message };
   const d = parsed.data;
+  if (d.voiceId && !voicesFor(d.language).some((v) => v.id === d.voiceId)) return { error: "That voice doesn't speak the chosen language; pick another one" };
   const over = await quota(user, { ai: true });
   if (over) return { error: over };
 
@@ -88,6 +91,7 @@ export async function createProject(_: NewProjectState, form: FormData): Promise
       mood: d.mood || null,
       language: d.language,
       captions: d.captions,
+      voiceId: d.voiceId ?? null,
       brand: brand ? json(brand) : undefined,
       logoKey: upload?.key ?? null,
       status: research ? "researching" : "brand",
