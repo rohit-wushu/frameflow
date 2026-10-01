@@ -1,0 +1,21 @@
+[project]
+name = "frameflow-parler"
+version = "0.1.0"
+description = "Frameflow Indian-language voices: AI4Bharat Indic Parler-TTS (Apache-2.0)"
+requires-python = ">=3.12,<3.13"
+# Its own environment: parler-tts pins transformers 4.46.1, while WhisperX/Kokoro in services/audio need newer.
+dependencies = [
+  "fastapi>=0.115",
+  "uvicorn>=0.32",
+  "numpy",
+  "soundfile>=0.12",
+  "librosa>=0.11",
+  "torch>=2.4",
+  "parler-tts==0.2.3",
+  "transformers==4.46.1",
+  "sentencepiece",
+  "huggingface-hub",
+]
+
+[tool.uv]
+package = false

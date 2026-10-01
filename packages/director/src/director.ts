@@ -1,13 +1,13 @@
 // The AI director: brief (+ brand) -> scene plan, with a validation loop.
 // Claude writes the plan as JSON; our validator checks it; on failure the exact errors go back
 // to Claude to fix (fresh request with the previous plan), up to 3 attempts in total.
-import { formatIssues, validatePlan, type ScenePlan, type SpeechModel, type ValidationIssue } from "@frameflow/scene-schema";
+import { formatIssues, LANGUAGE_INFO, validatePlan, type ScenePlan, type SpeechModel, type ValidationIssue } from "@frameflow/scene-schema";
 import { templateRules } from "@frameflow/templates";
 import { TIMING_DEFAULTS } from "@frameflow/timing";
 import { isGoogleFont } from "./google-fonts.js";
 import { researchAssets } from "./brand.js";
 import { DirectorError, type Llm, type LlmResponse } from "./llm.js";
-import { DEFAULT_RATE, PAUSE_SECONDS, VOICES, voicesFor } from "./options.js";
+import { DEFAULT_RATE, PAUSE_SECONDS, VOICES, voiceRate, voicesFor } from "./options.js";
 import { briefMessage, editFixMessage, editMessage, fixMessage, systemPrompt, type Brief, type EditRequest, type Sound } from "./prompt.js";
 
 export interface Attempt {
@@ -27,7 +27,7 @@ export interface DirectorOptions {
 }
 
 export const SPEECH: SpeechModel = {
-  rates: Object.fromEntries(VOICES.flatMap((v) => (v.rate ? [[v.id, v.rate]] : []))),
+  rates: Object.fromEntries(VOICES.map((v) => [v.id, voiceRate(v)])),
   defaultRate: DEFAULT_RATE,
   pause: PAUSE_SECONDS,
   overhead: TIMING_DEFAULTS.voiceLead + TIMING_DEFAULTS.tailPad,
@@ -62,13 +62,16 @@ export function pinFields(draft: Record<string, unknown>, brief: Brief, id: stri
 async function extraChecks(plan: ScenePlan, brandFixed: boolean): Promise<ValidationIssue[]> {
   const issues: ValidationIssue[] = [];
   const fitting = voicesFor(plan.language);
-  if (!fitting.some((v) => v.id === plan.voice.voiceId)) {
-    const known = VOICES.some((v) => v.id === plan.voice.voiceId);
+  const checkVoice = (path: string, voiceId: string) => {
+    if (fitting.some((v) => v.id === voiceId)) return;
+    const known = VOICES.some((v) => v.id === voiceId);
     issues.push({
-      path: "voice.voiceId",
-      message: `"${plan.voice.voiceId}" ${known ? `does not speak ${plan.language === "en" ? "English" : "Hindi"}` : "is not an available voice"}; use one of ${fitting.map((v) => v.id).join(", ")}`,
+      path,
+      message: `"${voiceId}" ${known ? `does not speak ${LANGUAGE_INFO[plan.language].name}` : "is not an available voice"}; use one of ${fitting.map((v) => v.id).join(", ")}`,
     });
-  }
+  };
+  checkVoice("voice.voiceId", plan.voice.voiceId);
+  plan.scenes.forEach((s, i) => s.voiceId && checkVoice(`scenes[${i}].voiceId`, s.voiceId));
   if (!brandFixed) {
     for (const role of ["heading", "body"] as const) {
       const family = plan.brand.font[role];

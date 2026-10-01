@@ -1,5 +1,7 @@
 "use client";
-import { speechSeconds, type SpeechModel } from "@frameflow/scene-schema";
+import { proFeatures, speechSeconds, type SpeechModel } from "@frameflow/scene-schema";
+import { Sparkles } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useMemo, useState, useTransition } from "react";
 import { toast } from "sonner";
@@ -12,14 +14,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { ProjectState } from "@/hooks/use-project-state";
-import { catalog, templateInfo, templateLabel } from "@/lib/catalog";
+import { VoicePanel, type PlanVoice } from "@/components/voice-picker";
+import { catalog, FREE_VOICES, templateInfo, templateLabel } from "@/lib/catalog";
 import { IconList, type Assets } from "./content-fields";
 import { SceneCard, type Scene } from "./scene-card";
 
 export interface EditablePlan {
   title: string;
   mood: string;
-  voice: { engine: string; voiceId: string; speed: number };
+  voice: PlanVoice;
   music: { mode: string; mood: string };
   scenes: Scene[];
   targetDuration: number;
@@ -38,7 +41,7 @@ export function sceneTiming(scene: Scene, voice: EditablePlan["voice"]) {
   const t = templateInfo(scene.template);
   if (!t) return { est: scene.estDuration, spoken: 0, tooLong: false };
   if (!scene.voiceover.trim()) return { est: Math.min(Math.max(scene.estDuration, t.minDuration), t.maxDuration), spoken: 0, tooLong: false };
-  const spoken = speechSeconds(scene.voiceover, voice.voiceId, voice.speed, SPEECH) + catalog.speech.overhead;
+  const spoken = speechSeconds(scene.voiceover, scene.voiceId ?? voice.voiceId, voice.speed, SPEECH) + catalog.speech.overhead;
   const est = Math.round(Math.min(Math.max(spoken, t.minDuration), t.maxDuration) * 10) / 10;
   return { est, spoken, tooLong: spoken > t.maxDuration - 0.5 };
 }
@@ -53,7 +56,23 @@ const newId = (template: string, taken: Set<string>) => {
   return id;
 };
 
-export function Storyboard({ projectId, initial, format, language, rendered, messages }: { projectId: string; initial: EditablePlan; format: string; language: string; rendered: boolean; messages: ProjectState["messages"] }) {
+export function Storyboard({
+  projectId,
+  initial,
+  format,
+  language,
+  rendered,
+  messages,
+  isPro,
+}: {
+  projectId: string;
+  initial: EditablePlan;
+  format: string;
+  language: string;
+  rendered: boolean;
+  messages: ProjectState["messages"];
+  isPro: boolean;
+}) {
   const router = useRouter();
   const [plan, setPlan] = useState<EditablePlan>(() => withTimings(initial));
   const [dirty, setDirty] = useState(false);
@@ -86,6 +105,7 @@ export function Storyboard({ projectId, initial, format, language, rendered, mes
     });
 
   const total = plan.scenes.reduce((s, x) => s + x.estDuration, 0);
+  const pro = proFeatures(plan, FREE_VOICES);
   const [lo, hi] = [plan.targetDuration * 0.85, plan.targetDuration * 1.15];
 
   // server issues by scene index; the rest are shown on top
@@ -130,22 +150,10 @@ export function Storyboard({ projectId, initial, format, language, rendered, mes
             <Label className="text-xs text-muted-foreground">Title (internal)</Label>
             <Input value={plan.title} maxLength={120} onChange={(e) => update((p) => ({ ...p, title: e.target.value }))} />
           </div>
-          <div className="space-y-1.5 sm:col-span-2">
-            <Label className="text-xs text-muted-foreground">Voice</Label>
-            <Select value={plan.voice.voiceId} onValueChange={(v) => update((p) => ({ ...p, voice: { ...p.voice, voiceId: v } }))}>
-              <SelectTrigger className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {catalog.voices.filter((v) => v.lang === (language === "en" ? "en" : "hi")).map((v) => (
-                  <SelectItem key={v.id} value={v.id}>
-                    {v.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          <div className="sm:col-span-2 lg:col-span-4">
+            <VoicePanel voice={plan.voice} language={language} isPro={isPro} onChange={(voice) => update((p) => ({ ...p, voice }))} />
           </div>
-          <div className="space-y-1.5">
+          <div className="space-y-1.5 sm:col-span-1 lg:col-span-2">
             <Label className="text-xs text-muted-foreground">Music</Label>
             <Select value={plan.music.mood} onValueChange={(v) => update((p) => ({ ...p, music: { ...p.music, mood: v } }))}>
               <SelectTrigger className="w-full">
@@ -160,7 +168,7 @@ export function Storyboard({ projectId, initial, format, language, rendered, mes
               </SelectContent>
             </Select>
           </div>
-          <div className="space-y-1.5">
+          <div className="space-y-1.5 sm:col-span-1 lg:col-span-2">
             <Label className="text-xs text-muted-foreground">Style</Label>
             <Select value={plan.mood} onValueChange={(v) => update((p) => ({ ...p, mood: v }))}>
               <SelectTrigger className="w-full">
@@ -176,6 +184,21 @@ export function Storyboard({ projectId, initial, format, language, rendered, mes
             </Select>
           </div>
         </div>
+
+        {!isPro && pro.length > 0 && (
+          <Alert>
+            <Sparkles />
+            <AlertDescription>
+              <span>
+                This video uses Pro customizations ({pro.join(", ")}). Render and watch it free; downloading it needs{" "}
+                <Link href="/billing" className="underline underline-offset-2">
+                  Pro
+                </Link>
+                .
+              </span>
+            </AlertDescription>
+          </Alert>
+        )}
 
         {(error || general.length > 0) && (
           <Alert variant="destructive">
@@ -206,6 +229,8 @@ export function Storyboard({ projectId, initial, format, language, rendered, mes
             onRemove={() => remove(i)}
             onAdd={(template) => add(i + 1, template)}
             assets={plan.assets}
+            language={language}
+            planVoiceId={plan.voice.voiceId}
           />
         ))}
 

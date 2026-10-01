@@ -4,7 +4,7 @@ import { createRequire } from "node:module";
 import { dirname, extname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
-import { FORMAT_SIZE, type ScenePlan } from "@frameflow/scene-schema";
+import { FORMAT_SIZE, htmlLang, LANGUAGE_INFO, SCRIPTS, scriptOf, type ScenePlan } from "@frameflow/scene-schema";
 import { FALLBACK_ICON, getTemplate, iconSvg } from "@frameflow/templates";
 import type { CaptionChunk, TimingResult } from "@frameflow/timing";
 import { loadGoogleFont } from "../fonts.js";
@@ -13,7 +13,6 @@ const here = dirname(fileURLToPath(import.meta.url));
 const require = createRequire(import.meta.url);
 const run = promisify(execFile);
 const FALLBACK_FONT = "Inter";
-const DEVANAGARI_FONT = "Noto Sans Devanagari";
 
 export interface ComposeInput {
   plan: ScenePlan;
@@ -75,8 +74,9 @@ function collectIcons(value: unknown, out: Set<string>) {
 
 async function fontCss(plan: ScenePlan, cacheDir: string, fontsDir: string, warnings: string[]) {
   const families = { heading: plan.brand.font.heading, body: plan.brand.font.body };
-  // Hindi: keep the brand fonts' Devanagari files too when they have them (Poppins, Mukta, ...)
-  const subsets = plan.language === "en" ? undefined : ["latin", "latin-ext", "devanagari"];
+  // other scripts: keep the brand fonts' files for the script too when they have them (Poppins and Mukta have Devanagari, ...)
+  const script = SCRIPTS[scriptOf(plan.language)];
+  const subsets = script.font ? ["latin", "latin-ext", script.subset] : undefined;
   const weights = { heading: [600, 700], body: [400, 500, 600] };
   const css: string[] = [];
   for (const role of ["heading", "body"] as const) {
@@ -93,19 +93,19 @@ async function fontCss(plan: ScenePlan, cacheDir: string, fontsDir: string, warn
     for (const f of font.files) await copyFile(f.path, join(fontsDir, f.name));
     css.push(font.css);
   }
-  // Hindi text: most brand fonts have no Devanagari, so the browser falls back to this one per glyph
-  let script: string | null = null;
-  if (plan.language !== "en") {
+  // most brand fonts don't cover Indian scripts, so the browser falls back to the script's Noto font per glyph
+  let fallback: string | null = null;
+  if (script.font) {
     try {
-      const deva = await loadGoogleFont(DEVANAGARI_FONT, [400, 500, 600, 700], cacheDir, ["devanagari", "latin"]);
-      for (const f of deva.files) await copyFile(f.path, join(fontsDir, f.name));
-      css.push(deva.css);
-      script = DEVANAGARI_FONT;
+      const font = await loadGoogleFont(script.font, [400, 500, 600, 700], cacheDir, [script.subset, "latin"]);
+      for (const f of font.files) await copyFile(f.path, join(fontsDir, f.name));
+      css.push(font.css);
+      fallback = script.font;
     } catch (e) {
-      warnings.push(`${(e as Error).message}; Hindi text uses the system font`);
+      warnings.push(`${(e as Error).message}; ${LANGUAGE_INFO[plan.language].name} text uses the system font`);
     }
   }
-  return { css: [...new Set(css)].join("\n"), families, script };
+  return { css: [...new Set(css)].join("\n"), families, script: fallback };
 }
 
 // Write a HyperFrames project (index.html + assets) for a timed plan.
@@ -170,7 +170,7 @@ export async function composeProject(input: ComposeInput): Promise<{ indexPath: 
   const D = timing.duration;
 
   const html = `<!DOCTYPE html>
-<html lang="${plan.language === "en" ? "en" : "hi"}" data-resolution="${size.resolution}">
+<html lang="${htmlLang(plan.language)}" dir="${SCRIPTS[scriptOf(plan.language)].dir}" data-resolution="${size.resolution}">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=${size.width}, height=${size.height}">

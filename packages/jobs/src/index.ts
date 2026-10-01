@@ -11,6 +11,7 @@ export const PREFIX = "frameflow";
 export const MEDIA_QUEUE = "media"; // research + render stages: heavy (Chrome, audio models), one at a time by default
 export const AI_QUEUE = "ai"; // director calls: light, several at once
 export const CHECK_QUEUE = "check"; // plan validation for the web app (the worker owns the engine's rules)
+export const VOICE_QUEUE = "voice"; // voice previews: one at a time, apart from renders so a preview doesn't wait for one
 
 // Must match RENDER_STAGES in @frameflow/pipeline (the worker checks this at startup).
 export const RENDER_STAGES = ["validate", "voiceover", "alignment", "music", "timing", "sfx", "mix", "captions", "render", "finish"] as const;
@@ -49,7 +50,7 @@ export interface ChatJobData {
   render: boolean; // editor: render the change as a new version; storyboard: only update the plan
 }
 
-const g = globalThis as unknown as { frameflowRedis?: Redis; frameflowQueues?: Record<string, Queue>; frameflowFlow?: FlowProducer; frameflowCheckEvents?: QueueEvents };
+const g = globalThis as unknown as { frameflowRedis?: Redis; frameflowQueues?: Record<string, Queue>; frameflowFlow?: FlowProducer; frameflowCheckEvents?: QueueEvents; frameflowVoiceEvents?: QueueEvents };
 
 // One Redis connection per process (BullMQ duplicates it for blocking commands).
 export function redis(): Redis {
@@ -57,7 +58,7 @@ export function redis(): Redis {
   return g.frameflowRedis;
 }
 
-export function queue(name: typeof MEDIA_QUEUE | typeof AI_QUEUE | typeof CHECK_QUEUE): Queue {
+export function queue(name: typeof MEDIA_QUEUE | typeof AI_QUEUE | typeof CHECK_QUEUE | typeof VOICE_QUEUE): Queue {
   g.frameflowQueues ??= {};
   g.frameflowQueues[name] ??= new Queue(name, { connection: redis(), prefix: PREFIX });
   return g.frameflowQueues[name];
@@ -163,6 +164,19 @@ export async function checkPlanInWorker(plan: unknown, brandFixed: boolean, time
   }
 }
 
+export interface VoiceSampleJobData {
+  voiceId: string;
+  style: string | null;
+  language: string;
+}
+
+// A short preview of a voice (cached in storage by the worker). Returns the wav's storage key.
+export async function voiceSample(data: VoiceSampleJobData, timeoutMs = 90_000): Promise<string> {
+  g.frameflowVoiceEvents ??= new QueueEvents(VOICE_QUEUE, { connection: redis().duplicate(), prefix: PREFIX });
+  const job = await queue(VOICE_QUEUE).add("sample", data, { removeOnComplete: { age: 60 }, removeOnFail: { age: 3600 } });
+  return (await job.waitUntilFinished(g.frameflowVoiceEvents, timeoutMs)) as string;
+}
+
 // Job table updates (used by the worker).
 export interface JobEvent {
   at: string;
@@ -190,7 +204,9 @@ export async function closeJobs() {
   await Promise.all(Object.values(g.frameflowQueues ?? {}).map((q) => q.close()));
   await g.frameflowFlow?.close();
   await g.frameflowCheckEvents?.close();
+  await g.frameflowVoiceEvents?.close();
   g.frameflowCheckEvents = undefined;
+  g.frameflowVoiceEvents = undefined;
   g.frameflowRedis?.disconnect();
   g.frameflowQueues = undefined;
   g.frameflowFlow = undefined;

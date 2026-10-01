@@ -7,6 +7,7 @@ storage/
 
 # Python audio service
 services/audio/.venv/
+services/parler/.venv/
 __pycache__/
 *.pyc
 

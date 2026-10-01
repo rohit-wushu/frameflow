@@ -4,8 +4,8 @@
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { DEFAULT_RATE, isGoogleFont, PAUSE_SECONDS, SPEECH, TRANSITION_NOTES, VOICES } from "@frameflow/director";
-import { FORMATS, MOODS } from "@frameflow/scene-schema";
+import { DEFAULT_RATE, isGoogleFont, PAUSE_SECONDS, SPEECH, TRANSITION_NOTES, VOICES, voiceRate } from "@frameflow/director";
+import { FORMATS, LANGUAGE_INFO, LANGUAGES, MOODS, VOICE_STYLES } from "@frameflow/scene-schema";
 import { commonIcons, templates } from "@frameflow/templates";
 import { z } from "zod";
 
@@ -33,7 +33,9 @@ const catalog = {
     schema: z.toJSONSchema(t.schema, { io: "input", unrepresentable: "any" }),
     example: t.example,
   })),
-  voices: VOICES.map((v) => ({ id: v.id, lang: v.lang, label: v.label, rate: v.rate ?? DEFAULT_RATE })),
+  voices: VOICES.map((v) => ({ id: v.id, engine: v.engine, lang: v.lang, label: v.label, gender: v.gender ?? null, rate: voiceRate(v), tier: v.tier })),
+  languages: LANGUAGES.map((code) => ({ code, ...LANGUAGE_INFO[code] })),
+  styles: VOICE_STYLES,
   speech: { defaultRate: DEFAULT_RATE, pause: PAUSE_SECONDS, overhead: SPEECH.overhead },
   transitions: TRANSITION_NOTES,
   formats: FORMATS,

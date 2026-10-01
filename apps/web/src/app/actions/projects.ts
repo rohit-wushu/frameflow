@@ -1,7 +1,7 @@
 "use server";
 import { randomBytes } from "node:crypto";
 import { rm } from "node:fs/promises";
-import { db, Prisma, usageFor } from "@frameflow/db";
+import { db, Prisma, renderBlocked, usageFor } from "@frameflow/db";
 import { checkPlanInWorker, enqueueChat, enqueueDirect, enqueueRender, enqueueResearch, untimed } from "@frameflow/jobs";
 import { BrandSchema, FORMATS, LANGUAGES, MOODS, type Brand, type Format, type ScenePlan } from "@frameflow/scene-schema";
 import { revalidatePath } from "next/cache";
@@ -20,10 +20,12 @@ export type ActionResult = { ok: true } | { ok: false; error?: string; issues?: 
 
 // Quotas: renders per month, director calls per day (see packages/db/src/limits.ts).
 // Unconfirmed emails can look around but not spend renders or AI requests (stops throwaway sign-ups).
-async function quota(user: { id: string; tier: string; proUntil: Date | null; emailVerifiedAt: Date | null }, need: { render?: boolean; ai?: boolean }): Promise<string | null> {
+// `render`: the project that will be rendered (a video already made this month doesn't count again).
+async function quota(user: { id: string; tier: string; proUntil: Date | null; emailVerifiedAt: Date | null }, need: { render?: string | false; ai?: boolean }): Promise<string | null> {
   if (!user.emailVerifiedAt) return "Confirm your email first: open the link we sent you (or use “Resend email” at the top of the page).";
   const u = await usageFor(db(), user);
-  if (need.render && u.renders >= u.rendersLimit) return `You have used all ${u.rendersLimit} renders for this month (resets ${u.resetsOn.toISOString().slice(0, 10)}).`;
+  const blocked = need.render ? renderBlocked(u, need.render) : null;
+  if (blocked) return blocked;
   if (need.ai && u.aiCalls >= u.aiCallsLimit) return `You have used today's ${u.aiCallsLimit} AI requests; try again tomorrow.`;
   return null;
 }
@@ -184,7 +186,7 @@ export async function renderStoryboard(projectId: string, edited: Record<string,
   const { user, project, result } = await checkEdited(projectId, edited);
   if (!result.ok) return result;
   if (project.status === "rendering") return { ok: false, error: "A render is already running" };
-  const over = await quota(user, { render: true });
+  const over = await quota(user, { render: projectId });
   if (over) return { ok: false, error: over };
   await enqueueRender({
     projectId,
@@ -207,7 +209,7 @@ export async function sendChat(projectId: string, input: { text: string; sceneId
   if (input.render && project.status === "rendering") return { ok: false, error: "Wait for the current render to finish" };
   const busy = await db().job.count({ where: { projectId, kind: "chat", status: { in: ["queued", "running"] } } });
   if (busy) return { ok: false, error: "The last change is still being made" };
-  const over = await quota(user, { ai: true, render: input.render });
+  const over = await quota(user, { ai: true, render: input.render && projectId });
   if (over) return { ok: false, error: over };
   const scenes = (project.plan as ScenePlan).scenes;
   const sceneId = input.sceneId && scenes.some((s) => s.id === input.sceneId) ? input.sceneId : null;
@@ -237,7 +239,7 @@ export async function renderFormats(projectId: string, formats: string[]): Promi
   const extra = FORMATS.filter((f) => formats.includes(f) && f !== project.format);
   if (!extra.length) return { ok: false, error: "Pick at least one other format" };
   if (project.status === "rendering") return { ok: false, error: "Wait for the current render to finish" };
-  const over = await quota(user, { render: true });
+  const over = await quota(user, { render: projectId });
   if (over) return { ok: false, error: over };
   const current = project.currentVersion ? await db().version.findFirst({ where: { projectId, number: project.currentVersion } }) : null;
   if (!current) return { ok: false, error: "Render the video first" };

@@ -30,9 +30,21 @@ export interface TemplateInfo {
   example: { content: Record<string, unknown>; voiceover: string; estDuration: number };
 }
 
+export interface VoiceInfo {
+  id: string;
+  engine: "kokoro" | "indic-parler";
+  lang: string;
+  label: string;
+  gender: "female" | "male" | null;
+  rate: number;
+  tier: "free" | "pro";
+}
+
 export interface Catalog {
   templates: TemplateInfo[];
-  voices: { id: string; lang: "en" | "hi"; label: string; rate: number }[];
+  voices: VoiceInfo[];
+  languages: { code: string; name: string; native: string; script: string; voices: string; beta?: boolean }[];
+  styles: string[];
   speech: { defaultRate: number; pause: number; overhead: number };
   transitions: Record<string, string>;
   formats: string[];
@@ -47,3 +59,12 @@ export const templateInfo = (name: string) => catalog.templates.find((t) => t.na
 
 const LABELS: Record<string, string> = { cta: "Call to action", hero_text: "Hero text", feature_grid: "Feature grid", stat_counter: "Stat counter", logo_reveal: "Logo reveal" };
 export const templateLabel = (name: string) => LABELS[name] ?? name.replace(/_/g, " ").replace(/^./, (c) => c.toUpperCase());
+
+// The voices that speak a language (Hinglish is spoken by the Hindi voices), free ones first.
+export function voicesFor(language: string): VoiceInfo[] {
+  const lang = catalog.languages.find((l) => l.code === language)?.voices ?? "en";
+  return catalog.voices.filter((v) => v.lang === lang).sort((a, b) => (a.tier === b.tier ? 0 : a.tier === "free" ? -1 : 1));
+}
+export const voiceInfo = (id: string) => catalog.voices.find((v) => v.id === id);
+export const FREE_VOICES = catalog.voices.filter((v) => v.tier === "free").map((v) => v.id);
+export const languageName = (code: string) => catalog.languages.find((l) => l.code === code)?.name ?? code;

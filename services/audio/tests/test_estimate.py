@@ -34,6 +34,12 @@ class EstimateTest(unittest.TestCase):
         self.assertAlmostEqual(words[0]["start"], 0.0, delta=0.05)
         self.assertAlmostEqual(words[-1]["end"], 2.3, delta=0.05)
 
+    def test_urdu_comma_splits_phrases(self):
+        audio = np.concatenate([tone(1.0), silence(0.4), tone(1.0)])
+        words = estimate(audio, "السلام علیکم، آپ کی ویڈیو")
+        self.assertAlmostEqual(words[1]["end"], 1.0, delta=0.05)  # the phrase ends at the Urdu comma
+        self.assertAlmostEqual(words[2]["start"], 1.4, delta=0.05)
+
 
 if __name__ == "__main__":
     unittest.main()

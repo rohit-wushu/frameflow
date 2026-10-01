@@ -1,6 +1,6 @@
 import { createReadStream } from "node:fs";
 import { stat } from "node:fs/promises";
-import { db } from "@frameflow/db";
+import { db, effectiveTier } from "@frameflow/db";
 import type { NextRequest } from "next/server";
 import { currentUser, isAdmin } from "@/lib/auth";
 import { storagePath } from "@/lib/storage";
@@ -60,29 +60,46 @@ async function allowed(parts: string[], user: { id: string; email: string; role:
   return false;
 }
 
+// A video that uses Pro customizations (qa.pro, set at render) is locked for accounts without Pro: the player
+// gets the watermarked preview.mp4 instead of video.mp4, and nothing else of it can be downloaded. Admins see it as is.
+const OPEN_WHEN_LOCKED = /^(poster\.jpg|waveform\.json|credits\.txt)$/;
+async function locked(parts: string[], user: { email: string; role: string; tier: string; proUntil: Date | null }): Promise<boolean> {
+  if (parts[0] !== "projects" || parts.length !== 4 || isAdmin(user) || effectiveTier(user) === "pro") return false;
+  const version = await db().version.findUnique({ where: { projectId_number: { projectId: parts[1], number: Number(parts[2].slice(1)) } }, select: { qa: true } });
+  return ((version?.qa as { pro?: string[] } | null)?.pro ?? []).length > 0;
+}
+
 export async function GET(req: NextRequest, ctx: RouteContext<"/api/files/[...key]">) {
   const user = await currentUser();
   const { key } = await ctx.params;
   if (!user || key.some((p) => p === ".." || p === "." || p.includes("\0")) || !(await allowed(key, user))) {
     return new Response("Not found", { status: 404 });
   }
-  const file = storagePath(key.join("/"));
+  const name = key[key.length - 1];
+  const download = !!req.nextUrl.searchParams.get("download");
+  let file = storagePath(key.join("/"));
+  let preview = false;
+  if (!OPEN_WHEN_LOCKED.test(name) && (await locked(key, user))) {
+    if (name !== "video.mp4" || download) return new Response("This video uses Pro customizations. Upgrade to Pro to download it.", { status: 403 });
+    file = storagePath([...key.slice(0, 3), "preview.mp4"].join("/"));
+    preview = true;
+  }
   let size: number;
   try {
     size = (await stat(file)).size;
   } catch {
     return new Response("Not found", { status: 404 });
   }
-  const name = key[key.length - 1];
   const headers = new Headers({
     "Content-Type": TYPES[name.split(".").pop()!.toLowerCase()] ?? "application/octet-stream",
     "Accept-Ranges": "bytes",
-    "Cache-Control": "private, max-age=300",
+    // not cached when it's the preview: after upgrading, the same URL gives the real video
+    "Cache-Control": preview ? "private, no-store" : "private, max-age=300",
     "X-Content-Type-Options": "nosniff",
     // an uploaded SVG opened directly can't run anything
     "Content-Security-Policy": "default-src 'none'; img-src 'self' data:; style-src 'unsafe-inline'; media-src 'self'; sandbox",
   });
-  if (req.nextUrl.searchParams.get("download")) {
+  if (download) {
     const title = req.nextUrl.searchParams.get("name")?.replace(/[^\w.-]+/g, "-").slice(0, 60) || "frameflow";
     headers.set("Content-Disposition", `attachment; filename="${title}-${name}"`);
   }

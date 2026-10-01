@@ -1,4 +1,6 @@
 "use client";
+import { Lock } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
@@ -31,6 +33,7 @@ export interface EditorProps {
   versions: ProjectState["versions"];
   messages: ProjectState["messages"];
   renderingVersion: number | null;
+  locked: string[] | null; // Pro customizations this version uses, when the account has no Pro: preview only
 }
 
 const FORMAT_FILE: Record<string, string> = { "16:9": "16x9", "9:16": "9x16", "1:1": "1x1" };
@@ -69,7 +72,8 @@ export function Editor(p: EditorProps) {
   return (
     <div className="grid gap-8 lg:grid-cols-[1fr_360px]">
       <div className="space-y-5">
-        <div className={cn("mx-auto overflow-hidden rounded-xl border bg-black", p.format === "9:16" ? "max-w-sm" : p.format === "1:1" ? "max-w-xl" : "")}>
+        <div className={cn("relative mx-auto overflow-hidden rounded-xl border bg-black", p.format === "9:16" ? "max-w-sm" : p.format === "1:1" ? "max-w-xl" : "")}>
+          {p.locked && <Badge className="absolute top-3 left-3 z-10">Preview</Badge>}
           <video key={p.version.number} ref={video} src={`${base}/video.mp4`} poster={`${base}/poster.jpg`} controls playsInline className="block w-full" />
         </div>
         <Timeline scenes={p.scenes} peaks={p.peaks} duration={p.version.duration} time={time} selected={selected} onSeek={seek} onSelect={(id) => setSelected(id === selected ? null : id)} />
@@ -137,7 +141,22 @@ export function Editor(p: EditorProps) {
           ))}
         </TabsContent>
         <TabsContent value="download" className="space-y-5">
-          <div className="space-y-2">
+          {p.locked && (
+            <div className="space-y-3 rounded-lg border border-primary/40 bg-primary/[0.06] p-4 text-sm">
+              <div className="flex items-center gap-2 font-medium">
+                <Lock className="size-4" />
+                Downloading this video needs Pro
+              </div>
+              <p className="text-muted-foreground">
+                It uses Pro customizations ({p.locked.join(", ")}). You can keep editing and watching it with a watermark. Upgrade to download it
+                without the watermark, or switch back to a free voice and default settings in the storyboard.
+              </p>
+              <Button asChild className="w-full">
+                <Link href="/billing">Upgrade to Pro</Link>
+              </Button>
+            </div>
+          )}
+          <div className={cn("space-y-2", p.locked && "pointer-events-none opacity-40")} aria-disabled={!!p.locked}>
             {p.version.formats.map((f) => (
               <Button key={f} asChild variant={f === p.format ? "default" : "secondary"} className="w-full justify-between">
                 <a href={`${base}/${fileFor(f)}?download=1&name=${encodeURIComponent(p.title)}`}>

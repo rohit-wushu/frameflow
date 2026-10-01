@@ -1,4 +1,4 @@
-"""Frameflow audio service: /tts (Kokoro), /align (WhisperX), /beats (librosa).
+"""Frameflow audio service: /tts (Kokoro; Indic Parler-TTS through services/parler), /align (WhisperX), /beats (librosa).
 
 Run: pnpm audio:start   (uvicorn on 127.0.0.1:8790)
 """
@@ -14,6 +14,7 @@ from pydantic import BaseModel, Field
 
 from . import align as align_mod
 from . import beats as beats_mod
+from . import parler_client
 from . import tts as tts_mod
 
 app = FastAPI(title="Frameflow audio service")
@@ -24,6 +25,7 @@ class TTSRequest(BaseModel):
     voiceId: str = "af_heart"
     speed: float = Field(1.0, ge=0.5, le=2.0)
     engine: str = "kokoro"
+    style: str | None = None  # Indic Parler voices only: natural, calm, energetic, cheerful, serious, warm
 
 
 def _save_upload(upload: UploadFile):
@@ -45,21 +47,25 @@ def unload():
     before rendering so headless Chrome has the memory on 8 GB machines."""
     tts_mod.unload()
     align_mod.unload()
+    parler_client.unload()
     gc.collect()
     return {"ok": True}
 
 
 @app.post("/tts")
 def tts(req: TTSRequest):
-    if req.engine != "kokoro":
-        raise HTTPException(400, f"engine '{req.engine}' is not available yet (phase 1 has kokoro only)")
     try:
-        audio = tts_mod.synthesize(req.text, req.voiceId, req.speed)
-    except tts_mod.TTSError as e:
+        if req.engine == "kokoro":
+            audio, rate = tts_mod.synthesize(req.text, req.voiceId, req.speed), tts_mod.SAMPLE_RATE
+        elif req.engine == "indic-parler":
+            audio, rate = parler_client.synthesize(req.text, req.voiceId, req.speed, req.style)
+        else:
+            raise HTTPException(400, f"unknown voice engine '{req.engine}' (kokoro or indic-parler)")
+    except (tts_mod.TTSError, parler_client.ParlerError) as e:
         raise HTTPException(400, str(e))
     buf = io.BytesIO()
-    sf.write(buf, audio, tts_mod.SAMPLE_RATE, format="WAV", subtype="PCM_16")
-    duration = len(audio) / tts_mod.SAMPLE_RATE
+    sf.write(buf, audio, rate, format="WAV", subtype="PCM_16")
+    duration = len(audio) / rate
     return Response(buf.getvalue(), media_type="audio/wav", headers={"X-Duration": f"{duration:.3f}"})
 
 

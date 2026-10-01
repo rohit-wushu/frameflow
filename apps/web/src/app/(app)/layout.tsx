@@ -21,7 +21,9 @@ const initials = (name: string) =>
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const user = await requireUser();
   const usage = await usageFor(db(), user);
-  const used = Math.min(100, Math.round((usage.renders / Math.max(1, usage.rendersLimit)) * 100));
+  // free accounts count videos; Pro counts renders
+  const [count, limit, what] = usage.videosLimit !== null ? [usage.videos, usage.videosLimit, "videos"] : [usage.renders, usage.rendersLimit, "renders"];
+  const used = Math.min(100, Math.round((count / Math.max(1, limit)) * 100));
   return (
     <div className="relative isolate min-h-dvh">
       <Aurora variant="subtle" className="fixed h-[38rem] [mask-image:linear-gradient(to_bottom,black_45%,transparent)]" />
@@ -36,7 +38,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           <div className="ml-auto flex items-center gap-3">
             <div className="hidden w-36 space-y-1 md:block" title={`Resets ${usage.resetsOn.toISOString().slice(0, 10)}`}>
               <span className="block text-right text-[11px] text-muted-foreground">
-                {usage.renders}/{usage.rendersLimit} renders this month
+                {count}/{limit} {what} this month
               </span>
               <span className="block h-1 overflow-hidden rounded-full bg-white/[0.07]">
                 <span className="block h-full rounded-full bg-[linear-gradient(90deg,var(--brand-violet),var(--brand-teal))]" style={{ width: `${used}%` }} />

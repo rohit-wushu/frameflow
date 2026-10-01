@@ -38,7 +38,7 @@ async function check(res: Response): Promise<Response> {
   throw new Err(`HTTP ${res.status}: ${typeof detail === "string" ? detail : JSON.stringify(detail)}`);
 }
 
-// Client for services/audio (FastAPI): /tts (Kokoro), /align (WhisperX), /beats (librosa).
+// Client for services/audio (FastAPI): /tts (Kokoro, or Indic Parler through services/parler), /align (WhisperX), /beats (librosa).
 export class AudioClient {
   constructor(readonly baseUrl: string) {}
 
@@ -51,10 +51,16 @@ export class AudioClient {
     }
   }
 
-  tts(text: string, voiceId: string, speed: number, engine: string): Promise<Buffer> {
+  tts(text: string, voiceId: string, speed: number, engine: string, style?: string | null): Promise<Buffer> {
     return withRetry("text to speech", async () => {
       const res = await check(
-        await fetch(`${this.baseUrl}/tts`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ text, voiceId, speed, engine }) }),
+        await fetch(`${this.baseUrl}/tts`, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ text, voiceId, speed, engine, style: style ?? null }),
+          // Indic Parler loads (and the first time downloads) its model on the first request
+          signal: AbortSignal.timeout(engine === "indic-parler" ? 30 * 60_000 : 5 * 60_000),
+        }),
       );
       return Buffer.from(await res.arrayBuffer());
     });

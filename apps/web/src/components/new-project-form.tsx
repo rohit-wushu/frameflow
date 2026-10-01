@@ -127,9 +127,13 @@ export function NewProjectForm({ kits }: { kits: { id: string; name: string }[] 
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="en">English</SelectItem>
-              <SelectItem value="hi">Hindi</SelectItem>
-              <SelectItem value="hinglish">Hinglish</SelectItem>
+              {catalog.languages.map((l) => (
+                <SelectItem key={l.code} value={l.code}>
+                  {l.name}
+                  {l.native !== l.name && <span className="text-muted-foreground">{l.native}</span>}
+                  {l.beta && <span className="text-[10px] text-amber-400">beta</span>}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>

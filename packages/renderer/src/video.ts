@@ -20,6 +20,17 @@ export async function socialEncode(input: string, out: string) {
   ]);
 }
 
+// A copy of the video with a semi-transparent "Preview" mark in the middle (assets/brand/watermark.png): what
+// accounts without Pro watch when the video uses Pro customizations. Fast settings: it is only for watching.
+export async function watermarkPreview(input: string, mark: string, out: string, width: number) {
+  const w = Math.round(width * 0.62);
+  await ffmpeg([
+    "-i", input, "-i", mark,
+    "-filter_complex", `[1:v]scale=${w}:-1,format=rgba,colorchannelmixer=aa=0.55[wm];[0:v][wm]overlay=(W-w)/2:(H-h)/2,format=yuv420p[v]`,
+    "-map", "[v]", "-map", "0:a?", "-c:v", "libx264", "-preset", "veryfast", "-crf", "26", "-c:a", "copy", "-movflags", "+faststart", out,
+  ]);
+}
+
 export interface Check {
   name: string;
   ok: boolean;

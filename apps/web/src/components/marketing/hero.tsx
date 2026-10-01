@@ -14,7 +14,7 @@ const CHIPS = [
   { icon: AudioLines, label: "Voice + music" },
 ];
 
-export function Hero({ freeRenders }: { freeRenders: number }) {
+export function Hero({ freeVideos }: { freeVideos: number }) {
   return (
     <section className="relative isolate overflow-hidden pt-32 pb-24 sm:pt-40">
       <Aurora />
@@ -66,7 +66,7 @@ export function Hero({ freeRenders }: { freeRenders: number }) {
             </div>
           </div>
           <p className="mt-4 flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
-            {["Free plan", "No card needed", `${freeRenders} renders a month`].map((t) => (
+            {["Free plan", "No card needed", `${freeVideos} videos a month`].map((t) => (
               <span key={t} className="inline-flex items-center gap-1.5">
                 <Check className="size-3.5 text-[oklch(0.8_0.13_205)]" />
                 {t}
