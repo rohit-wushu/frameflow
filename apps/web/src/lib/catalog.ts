@@ -68,3 +68,14 @@ export function voicesFor(language: string): VoiceInfo[] {
 export const voiceInfo = (id: string) => catalog.voices.find((v) => v.id === id);
 export const FREE_VOICES = catalog.voices.filter((v) => v.tier === "free").map((v) => v.id);
 export const languageName = (code: string) => catalog.languages.find((l) => l.code === code)?.name ?? code;
+
+// A voice's short name for cards ("Heart", "Jaya", "Tamil voice") and the rest of its label as a description.
+export function voiceName(v: VoiceInfo): string {
+  if (v.engine === "kokoro") return v.id.split("_")[1].replace(/^./, (c) => c.toUpperCase());
+  return v.label.split(",")[0].replace(/ voice$/, ""); // "Jaya", or "Tamil male" for an unnamed speaker
+}
+export function voiceDescription(v: VoiceInfo): string {
+  if (v.engine === "kokoro") return v.label.replace(" (the default)", "");
+  const rest = v.label.split(",").slice(1).join(",").trim();
+  return rest || (v.gender ? `${v.gender}` : "");
+}

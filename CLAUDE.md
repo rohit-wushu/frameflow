@@ -125,7 +125,7 @@ wrap them as BullMQ jobs.
 - Processes: **web** (`apps/web`, Next.js 16 App Router + Tailwind 4 + shadcn/ui, port 3210) only does UI, auth,
   database rows and queueing; **worker** (`apps/worker`) runs everything heavy. The web app never imports the
   engine: it reads `src/generated/catalog.json` (templates + JSON schemas + examples, voices, fonts; written by
-  `apps/web/scripts/catalog.mts` before dev/build) and validates plans by asking the worker (`check` queue).
+  `apps/web/scripts/catalog.mts` as the first step of the web `dev` and `build` scripts; not a `predev` hook, which pnpm skips by default) and validates plans by asking the worker (`check` queue).
 - Queues (`packages/jobs`, BullMQ 6 on Redis db 5, prefix `frameflow`): `media` (brand research + render stages,
   concurrency 1 because of Chrome + audio models on 8 GB), `ai` (director plans and chat edits, 3), `check` (8).
   BullMQ 6 needs an ioredis client instance (not connection options) in ESM.
@@ -216,6 +216,11 @@ wrap them as BullMQ jobs.
   (more reliable on short inputs), seeds generation from the text (same input, same audio), trims silence and joins
   with 0.12 s gaps. CPU works but is slow; set `PARLER_DEVICE=cuda:0` on a GPU server. `pnpm parler:setup` downloads
   the model ahead of time: the first request otherwise downloads ~3.5 GB, longer than Node's request timeout.
+- **New video form** (`new-project-form.tsx`): numbered sections (brief with idea chips, brand, length/format, language
+  and voice, style) and a sticky summary with a live frame preview. The voice can be picked there (`Project.voiceId`;
+  "let the director pick" = null): the brief names it and `pinFields` pins it, so the director paces for it.
+  Voices show illustrated avatars (`voice-avatar.tsx`: drawn SVG, gender from the voice, colors seeded from its id, a
+  badge with the language's first letter in its own script); no photos of real people.
 - **Previews**: the voice picker's ▶ calls `/api/voice-sample`, which queues a `voice` job (own queue, concurrency 1,
   so it doesn't wait behind renders); the worker makes the language's sample sentence once per voice + style
   (`storage/cache/samples/`).

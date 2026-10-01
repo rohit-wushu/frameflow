@@ -13,6 +13,7 @@ export interface Sound {
 
 export interface Brief {
   language?: Language; // default English
+  voiceId?: string; // the user's voice (pinned); else the director picks a free voice of the language
   prompt: string;
   durationSec: number;
   format: Format;
@@ -144,9 +145,13 @@ export function briefMessage(b: Brief): string {
   return [
     `Brief: ${b.prompt}`,
     `Length: ${b.durationSec} seconds. Format: ${b.format}. Mood: ${b.mood ?? "choose the best fit"}.`,
-    `Language: ${languageNote(b.language ?? "en")}${(b.language ?? "en") !== "en" ? " Brand and product names stay as they are." : ""} Use one of these voices: ${voicesFor(b.language ?? "en", "free")
-      .map((v) => v.id)
-      .join(", ")}.`,
+    `Language: ${languageNote(b.language ?? "en")}${(b.language ?? "en") !== "en" ? " Brand and product names stay as they are." : ""} ${
+      b.voiceId
+        ? `Voice: ${b.voiceId} (the user chose it; pace the voiceovers for it).`
+        : `Use one of these voices: ${voicesFor(b.language ?? "en", "free")
+            .map((v) => v.id)
+            .join(", ")}.`
+    }`,
     brandSection(b),
     b.research ? researchSection(b.research) : "",
     imagesSection(b.research ? researchAssets(b.research) : {}),

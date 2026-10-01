@@ -3,12 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev -p 3210 -H localhost",
-    "build": "next build",
+    "dev": "pnpm catalog && next dev -p 3210 -H localhost",
+    "build": "pnpm catalog && next build",
     "start": "next start -p 3210 -H localhost",
-    "catalog": "tsx scripts/catalog.mts",
-    "predev": "tsx scripts/catalog.mts",
-    "prebuild": "tsx scripts/catalog.mts"
+    "catalog": "tsx scripts/catalog.mts"
   },
   "dependencies": {
     "@frameflow/db": "workspace:*",

@@ -16,7 +16,7 @@ const isActive = (href: string, path: string) =>
 export function AppNav() {
   const path = usePathname();
   return (
-    <nav className="flex items-center gap-0.5 text-sm">
+    <nav className="flex min-w-0 items-center gap-0.5 text-sm">
       {ITEMS.map((item) => {
         const active = isActive(item.href, path);
         return (
@@ -25,7 +25,7 @@ export function AppNav() {
             href={item.href}
             aria-current={active ? "page" : undefined}
             className={cn(
-              "relative rounded-lg px-3 py-1.5 transition-colors",
+              "relative rounded-lg px-2 py-1.5 whitespace-nowrap transition-colors sm:px-3",
               active ? "bg-white/[0.07] text-foreground ring-1 ring-white/[0.08]" : "text-muted-foreground hover:bg-white/[0.04] hover:text-foreground",
             )}
           >

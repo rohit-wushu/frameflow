@@ -1,7 +1,7 @@
 // The AI director: brief (+ brand) -> scene plan, with a validation loop.
 // Claude writes the plan as JSON; our validator checks it; on failure the exact errors go back
 // to Claude to fix (fresh request with the previous plan), up to 3 attempts in total.
-import { formatIssues, LANGUAGE_INFO, validatePlan, type ScenePlan, type SpeechModel, type ValidationIssue } from "@frameflow/scene-schema";
+import { formatIssues, LANGUAGE_INFO, validatePlan, voiceEngine, type ScenePlan, type SpeechModel, type ValidationIssue } from "@frameflow/scene-schema";
 import { templateRules } from "@frameflow/templates";
 import { TIMING_DEFAULTS } from "@frameflow/timing";
 import { isGoogleFont } from "./google-fonts.js";
@@ -49,6 +49,7 @@ export function slug(s: string): string {
 export function pinFields(draft: Record<string, unknown>, brief: Brief, id: string): Record<string, unknown> {
   const plan: Record<string, unknown> = { ...draft, id, version: 1, format: brief.format, targetDuration: brief.durationSec, language: brief.language ?? "en" };
   if (brief.mood) plan.mood = brief.mood;
+  if (brief.voiceId) plan.voice = { ...(plan.voice && typeof plan.voice === "object" ? plan.voice : { speed: 1 }), engine: voiceEngine(brief.voiceId), voiceId: brief.voiceId };
   if (brief.brand) plan.brand = brief.brand;
   // images come from the engine (website screenshots), never from the director
   const assets = brief.research ? researchAssets(brief.research) : {};

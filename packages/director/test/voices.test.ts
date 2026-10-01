@@ -1,6 +1,6 @@
 import { LANGUAGES, voiceEngine } from "@frameflow/scene-schema";
 import { describe, expect, it } from "vitest";
-import { briefMessage, languageNote, VOICES, voicesFor } from "../src/index.js";
+import { briefMessage, languageNote, pinFields, VOICES, voicesFor } from "../src/index.js";
 
 describe("voices for every language", () => {
   it.each(LANGUAGES)("%s has a free voice", (l) => expect(voicesFor(l, "free").length).toBeGreaterThan(0));
@@ -20,4 +20,10 @@ describe("voices for every language", () => {
     expect(msg).not.toContain("pr_ta_kavitha");
   });
   it("Hinglish keeps its own note", () => expect(languageNote("hinglish")).toContain("Devanagari"));
+  it("a voice the user chose is named in the brief and pinned in the plan", () => {
+    const brief = { prompt: "Launch video", durationSec: 30, format: "16:9" as const, language: "ta" as const, voiceId: "pr_ta_kavitha" };
+    expect(briefMessage(brief)).toContain("Voice: pr_ta_kavitha (the user chose it");
+    const plan = pinFields({ voice: { engine: "kokoro", voiceId: "af_heart", speed: 1 } }, brief, "x");
+    expect(plan.voice).toEqual({ engine: "indic-parler", voiceId: "pr_ta_kavitha", speed: 1 });
+  });
 });

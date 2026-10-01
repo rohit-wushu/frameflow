@@ -73,7 +73,7 @@ export function directProcessor(ctx: Context, llm: (email: string) => Llm) {
     const research = p.research as StoredResearch | null;
     try {
       const opts = await directorOptions(ctx, llm(p.user.email), (a) => void addEvent(jobId, { step: "director", status: "info", message: attemptNote(a) }, { detail: attemptNote(a) }).catch(() => {}));
-      const brief = { prompt: p.prompt, durationSec: p.durationSec, format: p.format as Format, mood: (p.mood as Mood | null) ?? undefined, language: p.language as Language, brand: p.brand as Brand | null, research: toBrief(research) };
+      const brief = { prompt: p.prompt, durationSec: p.durationSec, format: p.format as Format, mood: (p.mood as Mood | null) ?? undefined, language: p.language as Language, voiceId: p.voiceId ?? undefined, brand: p.brand as Brand | null, research: toBrief(research) };
       const { plan, attempts } = await writePlan(brief, { ...opts, id: p.id });
       await ctx.storage.writeJson(`projects/${p.id}/director-${Date.now().toString(36)}.json`, { prompt: p.prompt, url: p.url, attempts });
       // an uploaded logo stays when the director proposed the colors and fonts

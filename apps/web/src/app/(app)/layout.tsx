@@ -28,7 +28,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     <div className="relative isolate min-h-dvh">
       <Aurora variant="subtle" className="fixed h-[38rem] [mask-image:linear-gradient(to_bottom,black_45%,transparent)]" />
       <header className="sticky top-0 z-30 border-b border-white/[0.06] bg-background/70 backdrop-blur-xl">
-        <div className="mx-auto flex h-14 max-w-6xl items-center gap-5 px-4">
+        <div className="mx-auto flex h-14 max-w-6xl items-center gap-3 px-4 sm:gap-5">
           <Link href="/" className="flex items-center gap-2.5 font-semibold tracking-tight">
             <LogoMark className="size-6" />
             <span className="hidden sm:inline">Frameflow</span>
@@ -47,7 +47,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             <Button asChild size="sm" className="h-8 px-3">
               <Link href="/new">
                 <Plus />
-                New video
+                <span className="max-sm:sr-only">New video</span>
               </Link>
             </Button>
             <DropdownMenu>

@@ -91,6 +91,7 @@ model Project {
   mood           String?
   language       String        @default("en")
   captions       Boolean       @default(false)
+  voiceId        String? // the voice the user picked on the new video form; null = the director picks
   brand          Json? // confirmed brand; null = the director proposes one
   logoKey        String? // an uploaded logo (storage key); kept when the director proposes the brand
   research       Json? // website facts for the director + detected brand + screenshot key

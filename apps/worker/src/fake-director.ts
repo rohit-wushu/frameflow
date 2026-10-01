@@ -19,8 +19,8 @@ const scene = (name: string, n: number, voiceId: string) => {
 function newPlan(user: string): string {
   const title = /^Brief: (.*)$/m.exec(user)?.[1]?.slice(0, 80) ?? "Fake plan";
   const target = Number(/^Length: (\d+) seconds/m.exec(user)?.[1] ?? 30);
-  // the first voice the brief offers for its language
-  const voiceId = /Use one of these voices: ([\w-]+)/.exec(user)?.[1] ?? "af_heart";
+  // the user's voice, else the first voice the brief offers for its language
+  const voiceId = /^.*Voice: ([\w-]+) \(the user chose it/m.exec(user)?.[1] ?? /Use one of these voices: ([\w-]+)/.exec(user)?.[1] ?? "af_heart";
   const middles = ["feature_grid", "stat_counter"];
   const end = [scene("cta", 90, voiceId), scene("logo_reveal", 91, voiceId)];
   const scenes = [scene("hero_text", 0, voiceId)];
