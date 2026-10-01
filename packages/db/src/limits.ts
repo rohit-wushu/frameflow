@@ -13,6 +13,12 @@ export function limitsFor(tier: string) {
   };
 }
 
+// "pro" counts only until proUntil (a paid pass runs out); null = no end date (given by an admin).
+export function effectiveTier(user: { tier: string; proUntil?: Date | null }, now = new Date()): string {
+  if (user.tier === "pro" && user.proUntil && user.proUntil <= now) return "free";
+  return user.tier;
+}
+
 export interface Usage {
   renders: number;
   rendersLimit: number;
@@ -21,14 +27,14 @@ export interface Usage {
   resetsOn: Date; // first day of next month (UTC)
 }
 
-export async function usageFor(prisma: PrismaClient, user: { id: string; tier: string }, now = new Date()): Promise<Usage> {
+export async function usageFor(prisma: PrismaClient, user: { id: string; tier: string; proUntil?: Date | null }, now = new Date()): Promise<Usage> {
   const month = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
   const day = new Date(now.getTime() - 24 * 3600 * 1000);
   const [renders, aiCalls] = await Promise.all([
     prisma.job.count({ where: { userId: user.id, kind: "render", status: { not: "failed" }, createdAt: { gte: month } } }),
     prisma.job.count({ where: { userId: user.id, kind: { in: ["direct", "chat"] }, status: { not: "failed" }, createdAt: { gte: day } } }),
   ]);
-  const limits = limitsFor(user.tier);
+  const limits = limitsFor(effectiveTier(user, now));
   return {
     renders,
     rendersLimit: limits.rendersPerMonth,

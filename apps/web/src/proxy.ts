@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 
 // Optimistic check only (no database here): signed-out visitors see the landing page at "/" and are
 // sent to /login everywhere else. Every page and action still verifies the session itself (lib/auth.ts).
-const PUBLIC = ["/login", "/signup", "/welcome"];
+const PUBLIC = ["/login", "/signup", "/welcome", "/forgot", "/reset", "/terms", "/privacy", "/refunds", "/contact", "/email-confirmed"];
 
 export function proxy(req: NextRequest) {
   const signedIn = req.cookies.has("ff_session");

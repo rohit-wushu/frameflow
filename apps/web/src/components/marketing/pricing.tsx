@@ -7,13 +7,14 @@ import { Accent, SectionHeading } from "./section-heading";
 
 type Limits = { rendersPerMonth: number; aiCallsPerDay: number };
 
-// Plan limits come from packages/db (limitsFor), so this page always matches what the app enforces.
-// Pro has no price yet, so it is shown as coming soon.
-export function Pricing({ free, pro }: { free: Limits; pro: Limits }) {
+// Plan limits come from packages/db (limitsFor) and the Pro price from lib/site (proOffer), so this page
+// always matches what the app enforces and charges.
+export function Pricing({ free, pro, offer }: { free: Limits; pro: Limits; offer: { priceInr: number; days: number } }) {
   const plans = [
     {
       name: "Free",
       price: "₹0",
+      per: "/ month",
       note: "No card needed",
       cta: { label: "Start free", href: "/signup" },
       featured: false,
@@ -27,14 +28,16 @@ export function Pricing({ free, pro }: { free: Limits; pro: Limits }) {
     },
     {
       name: "Pro",
-      price: "Soon",
-      note: "For teams that ship every week",
-      cta: { label: "Start free, upgrade later", href: "/signup" },
+      price: `₹${offer.priceInr.toLocaleString("en-IN")}`,
+      per: offer.days === 30 ? "/ month" : `/ ${offer.days} days`,
+      note: "For teams that ship every week. No auto-renewal.",
+      cta: { label: "Start free, upgrade anytime", href: "/signup" },
       featured: true,
       items: [
         `${pro.rendersPerMonth} renders a month`,
         `${pro.aiCallsPerDay} AI director requests a day`,
         "Everything in Free",
+        "Pay by UPI, card or netbanking",
       ],
     },
   ];
@@ -65,13 +68,13 @@ export function Pricing({ free, pro }: { free: Limits; pro: Limits }) {
                   <h3 className="text-lg font-semibold">{p.name}</h3>
                   {p.featured && (
                     <span className="rounded-full bg-primary/15 px-2.5 py-0.5 text-[11px] font-medium text-[oklch(0.85_0.1_292)] ring-1 ring-primary/30">
-                      Coming soon
+                      Popular
                     </span>
                   )}
                 </div>
                 <div className="mt-6 flex items-baseline gap-2">
                   <span className="text-5xl font-semibold tracking-tight">{p.price}</span>
-                  {p.name === "Free" && <span className="text-sm text-muted-foreground">/ month</span>}
+                  <span className="text-sm text-muted-foreground">{p.per}</span>
                 </div>
                 <p className="mt-2 text-sm text-muted-foreground">{p.note}</p>
                 <ul className="mt-8 flex-1 space-y-3 text-sm">

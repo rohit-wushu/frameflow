@@ -17,6 +17,9 @@ writes it, every engine reads it. Build phase by phase and stop after each one.
   named zoom regions), all formats from one plan, batch mode (CLI + web), Hindi / Hinglish (on Kokoro's Hindi voices;
   the spec's Indic Parler-TTS needs a Hugging Face token, see "Hindi"). ACE-Step is not built (needs a GPU).
 - Phase 5 (MCP server) pulled forward on request: `apps/mcp`, local (stdio) and claude.ai custom connector (HTTP).
+- Selling it (2026-10-01): Razorpay Pro pass, email verification + password reset, Terms / Privacy / Refunds / Contact
+  pages, admin panel at `/admin`. Tested end to end in a browser (Playwright) and with signed webhook calls; a live
+  Razorpay checkout has not run yet (no keys). See "Accounts, billing and admin".
 
 ## Commands
 
@@ -134,7 +137,7 @@ wrap them as BullMQ jobs.
   `proxy.ts` (Next 16's middleware) only checks the cookie exists; every page/action calls `requireUser()` /
   `ownProject()`. Login and sign-up are rate-limited in Redis. `SIGNUP_CODE` makes sign-up invite-only.
 - Quotas (`packages/db/src/limits.ts`): renders per month by tier (`FREE_/PRO_RENDERS_PER_MONTH`), director calls per
-  day (`AI_CALLS_PER_DAY`); failed jobs don't count. No payment provider yet (needs a decision: paid service).
+  day (`AI_CALLS_PER_DAY`); failed jobs don't count. `effectiveTier()`: "pro" counts only until `proUntil`.
 - Files: `/api/files/<storage key>` serves only finished outputs, research images and the user's own uploads, after
   an ownership check, with Range support and a sandboxing CSP. Uploads: PNG/JPEG/WebP/SVG ≤ 2 MB, sniffed by
   content; SVGs with scripts are refused.
@@ -153,6 +156,35 @@ wrap them as BullMQ jobs.
 - File responses use a small cancel-aware stream (`fileStream` in the files route): `Readable.toWeb` threw
   uncaught "Controller is already closed" errors whenever the video player cancelled a request on seek.
 - The worker re-checks the audio service before every audio stage and restarts it if it died.
+
+## Accounts, billing and admin
+
+- **Email** (`apps/web/src/lib/mail.ts`): nodemailer over `SMTP_URL` (any provider). Without it, dev prints each email
+  (with its link) to the web app's console; production throws. Links use `APP_URL`, so set it to the public address.
+- **Verification / reset links** (`lib/email-tokens.ts`, model EmailToken): random token in the link, SHA-256 in the DB,
+  single use, newest link of a kind only; verify 48 h, reset 1 h. Unconfirmed users can sign in and look around but
+  `quota()` refuses renders and AI requests (stops throwaway sign-ups); a banner offers "Resend email". The migration
+  marks accounts made before this as confirmed. A password reset confirms the email, signs out every session and
+  logs in. `/forgot` answers the same whether or not the email exists; rate-limited per IP and per email.
+- **Payments: Razorpay Pro pass** (`lib/razorpay.ts`, `actions/billing.ts`, model Payment): one payment = `PRO_DAYS`
+  (30) of Pro for `PRO_PRICE_INR` (999), no auto-renewal (UPI-friendly, no mandates); paying while Pro adds days.
+  Flow: `startProCheckout` creates an order (REST, no SDK) and a `created` Payment → Razorpay Checkout in the browser →
+  `confirmProPayment` checks the signature, fetches the payment, `settlePayment`. The webhook
+  (`/api/razorpay/webhook`, raw-body HMAC) settles too, so a closed tab still gets Pro. `settlePayment` checks
+  order + amount + currency, captures an authorized payment, and `activatePayment` marks the order paid with a
+  conditional update inside a transaction (only the first settle extends Pro; the user row is locked so two
+  payments both count). Admin-given Pro with no end date is left alone. Payment rows survive account deletion
+  (`userId` set null) for tax records. Refunds are done in the Razorpay dashboard.
+- **Admin panel** (`/admin`, `app/admin/*`): admins are `role = "admin"` or an email in `ADMIN_EMAILS` (to make the
+  first one). Every admin page and action calls `requireAdmin()` itself (a layout check alone is skipped on client
+  navigation); others get a 404. Pages: overview (revenue, Pro users, sign-ups, renders, queue, failures, last 14 days
+  in IST), users (search/filter; detail page: give/extend Pro, Free, disable, confirm email, send reset, sign out
+  everywhere, make admin, delete with all files), payments, videos (admins can watch any user's renders: the files
+  route lets admins past the owner check), jobs (with step events), activity log (model AuditLog: admin changes and
+  payments). Disabled accounts can't log in and their sessions stop working at once.
+- **Legal pages** (`app/(public)`): terms, privacy, refunds, contact, filled from `LEGAL_NAME`, `LEGAL_ADDRESS`,
+  `CONTACT_EMAIL`, `CONTACT_PHONE`, `LEGAL_JURISDICTION` and the Pro offer. Starting text, not legal advice: have it
+  reviewed. They are static pages, so the values are read at build time.
 
 ## Phase 4
 

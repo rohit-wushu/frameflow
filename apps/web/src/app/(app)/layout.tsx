@@ -1,5 +1,5 @@
-import { db, usageFor } from "@frameflow/db";
-import { LogOut, Plus } from "lucide-react";
+import { db, effectiveTier, usageFor } from "@frameflow/db";
+import { CreditCard, LogOut, Plus, Shield } from "lucide-react";
 import Link from "next/link";
 import { logout } from "@/app/actions/auth";
 import { AppNav } from "@/components/app-nav";
@@ -7,7 +7,8 @@ import { LogoMark } from "@/components/brand/logo";
 import { Aurora } from "@/components/fx/aurora";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { requireUser } from "@/lib/auth";
+import { VerifyBanner } from "@/components/verify-banner";
+import { isAdmin, requireUser } from "@/lib/auth";
 
 const initials = (name: string) =>
   name
@@ -66,8 +67,23 @@ export default async function AppLayout({ children }: { children: React.ReactNod
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">
-                  Plan: {user.tier} · {usage.aiCalls}/{usage.aiCallsLimit} AI requests today
+                  Plan: {effectiveTier(user)} · {usage.aiCalls}/{usage.aiCallsLimit} AI requests today
                 </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <Link href="/billing">
+                    <CreditCard />
+                    Billing
+                  </Link>
+                </DropdownMenuItem>
+                {isAdmin(user) && (
+                  <DropdownMenuItem asChild>
+                    <Link href="/admin">
+                      <Shield />
+                      Admin panel
+                    </Link>
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuSeparator />
                 <form action={logout}>
                   <DropdownMenuItem asChild>
@@ -81,6 +97,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             </DropdownMenu>
           </div>
         </div>
+        {!user.emailVerifiedAt && <VerifyBanner email={user.email} />}
       </header>
       <main className="mx-auto max-w-6xl px-4 py-10">{children}</main>
     </div>

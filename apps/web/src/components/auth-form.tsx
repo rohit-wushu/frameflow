@@ -41,7 +41,14 @@ export function AuthForm({ mode, inviteOnly }: { mode: "login" | "signup"; invit
           </div>
         </div>
         <div className="space-y-2">
-          <Label htmlFor="password">Password</Label>
+          <div className="flex items-baseline justify-between">
+            <Label htmlFor="password">Password</Label>
+            {mode === "login" && (
+              <Link href="/forgot" className="text-xs text-muted-foreground transition hover:text-foreground">
+                Forgot password?
+              </Link>
+            )}
+          </div>
           <div className="relative">
             <Icon icon={Lock} />
             <Input
@@ -77,6 +84,19 @@ export function AuthForm({ mode, inviteOnly }: { mode: "login" | "signup"; invit
           <Alert variant="destructive" className="animate-fade-up">
             <AlertDescription>{state.error}</AlertDescription>
           </Alert>
+        )}
+        {mode === "signup" && (
+          <p className="text-xs text-muted-foreground">
+            By creating an account you agree to the{" "}
+            <Link href="/terms" target="_blank" className="underline underline-offset-2 hover:text-foreground">
+              Terms
+            </Link>{" "}
+            and{" "}
+            <Link href="/privacy" target="_blank" className="underline underline-offset-2 hover:text-foreground">
+              Privacy Policy
+            </Link>
+            .
+          </p>
         )}
         <Button type="submit" className="group mt-2 h-11 w-full rounded-xl text-[0.95rem]" size="lg" disabled={pending}>
           {pending && <LoaderCircle className="animate-spin" />}
