@@ -1,5 +1,5 @@
 import { readFile } from "node:fs/promises";
-import { db } from "@frameflow/db";
+import { db, effectiveTier } from "@frameflow/db";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { DeleteProject } from "@/components/delete-project";
@@ -11,7 +11,7 @@ import { readStorageJson, storagePath } from "@/lib/storage";
 
 export default async function EditorPage({ params }: PageProps<"/p/[id]">) {
   const { id } = await params;
-  const { project } = await ownProject(id);
+  const { user, project } = await ownProject(id);
   if (!project.currentVersion) redirect(projectHref(project));
   const prisma = db();
   const [current, versions, messages, renderingVersion] = await Promise.all([
@@ -24,7 +24,9 @@ export default async function EditorPage({ params }: PageProps<"/p/[id]">) {
   const timing = await readStorageJson<{ duration: number; scenes: { id: string; start: number; duration: number }[] }>(`${key}/timing.json`);
   const wave = await readStorageJson<{ peaks: number[] }>(`${key}/waveform.json`);
   const credits = await readFile(storagePath(`${key}/credits.txt`), "utf8").catch(() => "");
-  const qa = (current.qa ?? {}) as { checks?: { name: string; ok: boolean; detail: string }[]; warnings?: string[]; reused?: string[] };
+  const qa = (current.qa ?? {}) as { checks?: { name: string; ok: boolean; detail: string }[]; warnings?: string[]; reused?: string[]; pro?: string[] };
+  // Pro customizations: without Pro the player shows the watermarked preview and downloads are locked (files route)
+  const locked = qa.pro?.length && effectiveTier(user) !== "pro" ? qa.pro : null;
   const plan = current.plan as { scenes: { id: string; template: string }[] };
   const scenes: TimelineScene[] = (timing?.scenes ?? []).map((s) => ({ ...s, template: plan.scenes.find((x) => x.id === s.id)?.template ?? "" }));
   return (
@@ -61,6 +63,7 @@ export default async function EditorPage({ params }: PageProps<"/p/[id]">) {
         versions={versions.map((v) => ({ number: v.number, status: v.status, note: v.note, duration: v.duration, formats: v.formats, error: v.error, createdAt: v.createdAt.toISOString() }))}
         messages={messages.map((m) => ({ id: m.id, role: m.role, text: m.text, version: m.version, sceneId: m.sceneId, createdAt: m.createdAt.toISOString() }))}
         renderingVersion={renderingVersion?.number ?? null}
+        locked={locked}
       />
     </div>
   );

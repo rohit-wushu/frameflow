@@ -35,7 +35,16 @@ export default async function BillingPage() {
           {tier === "pro" && <Badge>{user.proUntil ? `until ${day(user.proUntil)}` : "no end date"}</Badge>}
           {expired && user.proUntil && <Badge variant="secondary">Pro ended {day(user.proUntil)}</Badge>}
         </div>
-        <dl className="grid gap-4 text-sm sm:grid-cols-2">
+        <dl className="grid gap-4 text-sm sm:grid-cols-3">
+          {usage.videosLimit !== null && (
+            <div>
+              <dt className="text-muted-foreground">Videos this month</dt>
+              <dd className="mt-1 text-xl font-semibold">
+                {usage.videos} <span className="text-sm font-normal text-muted-foreground">of {usage.videosLimit}</span>
+              </dd>
+              <dd className="text-xs text-muted-foreground">Re-rendering a video doesn&apos;t use up another one</dd>
+            </div>
+          )}
           <div>
             <dt className="text-muted-foreground">Renders this month</dt>
             <dd className="mt-1 text-xl font-semibold">
@@ -61,7 +70,8 @@ export default async function BillingPage() {
           </div>
         </div>
         <ul className="space-y-1.5 text-sm text-foreground/85">
-          <li>• {pro.rendersPerMonth} renders a month (instead of {limitsFor("free").rendersPerMonth})</li>
+          <li>• Unlimited videos (instead of {limitsFor("free").videosPerMonth} a month), up to {pro.rendersPerMonth} renders a month</li>
+          <li>• Download videos with premium voices, voice styles, speed and a voice per scene</li>
           <li>• {pro.aiCallsPerDay} AI director requests a day</li>
           <li>• One payment, no auto-renewal. {tier === "pro" ? `Adds ${offer.days} days to your current Pro.` : `Pro starts right away.`}</li>
           <li>• UPI, cards, netbanking and wallets through Razorpay</li>

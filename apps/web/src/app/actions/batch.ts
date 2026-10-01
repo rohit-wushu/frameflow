@@ -1,5 +1,5 @@
 "use server";
-import { db, usageFor, type Prisma } from "@frameflow/db";
+import { db, renderBlocked, usageFor, type Prisma } from "@frameflow/db";
 import { checkPlanInWorker, enqueueRender, untimed } from "@frameflow/jobs";
 import { batchPlans, findPlaceholders, parseCsv, type Format, type ScenePlan } from "@frameflow/scene-schema";
 import { revalidatePath } from "next/cache";
@@ -55,8 +55,8 @@ export async function createBatch(projectId: string, csvText: string): Promise<B
   }
   if (!user.emailVerifiedAt) return { ok: false, error: "Confirm your email first: open the link we sent you." };
   const usage = await usageFor(db(), user);
-  const left = usage.rendersLimit - usage.renders;
-  if (rows.length > left) return { ok: false, error: `This batch needs ${rows.length} renders; you have ${left} left this month.` };
+  const blocked = renderBlocked(usage, "new", rows.length);
+  if (blocked) return { ok: false, error: `This batch makes ${rows.length} videos. ${blocked}` };
 
   const checked = await Promise.all(rows.map(async (r) => ({ r, check: await checkPlanInWorker({ ...(r.plan as object), id: "batch-check", version: 1 }, true, 30_000) })));
   const rowErrors = checked.filter((c) => !c.check.ok).map((c) => ({ row: c.r.row, problems: c.check.ok ? [] : c.check.errors.map((e) => `${e.path}: ${e.message}`) }));

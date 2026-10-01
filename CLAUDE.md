@@ -20,6 +20,11 @@ writes it, every engine reads it. Build phase by phase and stop after each one.
 - Selling it (2026-10-01): Razorpay Pro pass, email verification + password reset, Terms / Privacy / Refunds / Contact
   pages, admin panel at `/admin`. Tested end to end in a browser (Playwright) and with signed webhook calls; a live
   Razorpay checkout has not run yet (no keys). See "Accounts, billing and admin".
+- Voices and languages (2026-10-01): 23 languages (English, Hindi, Hinglish + 20 Indian languages), Indic Parler-TTS
+  as a second voice engine next to Kokoro (`services/parler`), voice picker with previews, speaking style, speed and a
+  voice per scene; Free = 5 videos a month, Pro customizations play watermarked until the account has Pro. Tested in a
+  browser with the fake director; Indic Parler itself has NOT produced audio yet (Hugging Face is blocked in the cloud
+  session that built it): run `pnpm parler:setup` and listen before launch. See "Voices and languages".
 
 ## Commands
 
@@ -41,6 +46,8 @@ writes it, every engine reads it. Build phase by phase and stop after each one.
 | `pnpm templates:preview [name...]` | Render every template's `example.json` to `<template>/preview.mp4` + 9:16 / 1:1 stills in `storage/previews/` |
 | `pnpm test` | Vitest: schema validation, timing, beat snapping, SFX placement, captions, registry |
 | `pnpm audio:test` | Python tests: beat detection on synthetic audio, alignment helpers |
+| `pnpm parler:setup` | Indic voices: create `services/parler`'s env and download the model (needs `HF_TOKEN`, ~3.5 GB) |
+| `pnpm parler:start` / `pnpm parler:test` | Run the Indic voices service on 127.0.0.1:8792 (the audio service starts it on demand) / its unit tests |
 | `pnpm typecheck` | `tsc --noEmit` over all packages |
 
 Rebuilding the asset libraries (only when changing them):
@@ -186,6 +193,40 @@ wrap them as BullMQ jobs.
   `CONTACT_EMAIL`, `CONTACT_PHONE`, `LEGAL_JURISDICTION` and the Pro offer. Starting text, not legal advice: have it
   reviewed. They are static pages, so the values are read at build time.
 
+## Voices and languages
+
+- **Languages** (`scene-schema/src/languages.ts`): en, hi, hinglish, bn, mr, te, ta, gu, kn, ml, pa, or, as, ur, ne, sa,
+  mai, kok, doi, brx, mni, sat, sd (the last 7 marked beta). Each has a script (font fallback: the script's Noto font,
+  and the brand fonts' own subset when they have it; Urdu/Sindhi render with `dir="rtl"`, untested in a real render),
+  an estimated speaking rate for unmeasured voices (fewer words a second for Tamil, Malayalam, ...), and a preview
+  sentence. The director writes everything in the language's own script (`languageNote`). Alignment: WhisperX for
+  English only; every other language uses `align.estimate` (punctuation incl. danda, Urdu and Ol Chiki stops).
+- **Voices** (`director/src/options.ts`): Kokoro (English, Hindi; fast; "Fast" in the UI) and Indic Parler-TTS for
+  every language ("Natural"). Parler ids are `pr_<language>_<speaker>` with the model card's recommended speakers, or
+  `pr_<language>_female|male` where it names none; `voiceEngine(id)` derives the engine (the schema checks
+  `voice.engine` matches). Each voice is `tier: free | pro`: Kokoro voices and one or two Parler voices per language
+  are free, the rest are Pro. Speaker genders come from names: verify by listening. Parler rates are estimates
+  (`LANGUAGE_INFO.rate`): measure them like Kokoro's once it runs.
+- **Plan fields**: `voice.style` (natural, calm, energetic, cheerful, serious, warm; Parler only, sent as part of the
+  voice description), `voice.speed` (Parler: time-stretched after generation), `scene.voiceId` (a scene in another
+  voice of the language). The TTS cache key includes the style (Kokoro keys unchanged, so old cache files still hit).
+- **services/parler**: its own uv env because parler-tts pins transformers 4.46.1 while WhisperX needs newer. The audio
+  service forwards `engine: "indic-parler"` to it (`app/parler_client.py`), starting it on demand, and `/unload`
+  frees it before renders. It reads `HF_TOKEN`/`PARLER_*` from the repo's .env, splits voiceovers into sentences
+  (more reliable on short inputs), seeds generation from the text (same input, same audio), trims silence and joins
+  with 0.12 s gaps. CPU works but is slow; set `PARLER_DEVICE=cuda:0` on a GPU server. `pnpm parler:setup` downloads
+  the model ahead of time: the first request otherwise downloads ~3.5 GB, longer than Node's request timeout.
+- **Previews**: the voice picker's ▶ calls `/api/voice-sample`, which queues a `voice` job (own queue, concurrency 1,
+  so it doesn't wait behind renders); the worker makes the language's sample sentence once per voice + style
+  (`storage/cache/samples/`).
+- **Free vs Pro**: Free = `FREE_VIDEOS_PER_MONTH` (5) videos a month (distinct projects with a render; re-rendering one
+  doesn't count again) within `FREE_RENDERS_PER_MONTH` (25) renders; Pro has no video limit (`renderBlocked()`).
+  Pro customizations (`proFeatures()`: a Pro voice, a style, a speed other than 1, a voice per scene) can be used by
+  anyone. The finish stage records them in `qa.pro` and writes `preview.mp4` with the watermark
+  (`assets/brand/watermark.png`); for an account without Pro the files route serves `preview.mp4` in place of
+  `video.mp4` (not cached) and refuses every other file of that version except poster, waveform and credits.
+  Upgrading unlocks the same version at once. The director picks only free voices for new videos.
+
 ## Phase 4
 
 - **Templates (12)**: hero_text, kinetic_words (hooks); problem_list, feature_grid, feature_spotlight, stat_counter,
@@ -206,7 +247,8 @@ wrap them as BullMQ jobs.
   English words also in Devanagari, which the Hindi voice reads well; Latin English words come out Hindi-accented).
   Voices must match the language (validator). Fonts: brand fonts keep their Devanagari subset and Noto Sans
   Devanagari is the fallback. Word normalization keeps combining marks (vowel signs). Text fitting counts graphemes.
-- **Hindi decision pending (user)**: the spec names AI4Bharat Indic Parler-TTS. It is Apache-2.0 but *gated* on
+- **Hindi** (superseded by "Voices and languages": Indic Parler is now a second engine; Kokoro stays the fast/free one):
+  the spec names AI4Bharat Indic Parler-TTS. It is Apache-2.0 but *gated* on
   Hugging Face (needs an account + token in .env), and so is the only commercially licensed Hindi aligner found
   (ai4bharat/indicwav2vec-hindi; WhisperX's default Hindi model has no license, Meta MMS is non-commercial).
   Until the user decides, Hindi uses **Kokoro's Hindi voices** (hf_alpha, hf_beta, hm_omega, hm_psi; Apache-2.0,
@@ -284,7 +326,10 @@ items, accent, beats).
   heavily (12 GB swap seen); a render crashed once under that pressure before the unload/retry fixes.
 - First `/tts` and `/align` calls download models (~700 MB) and take 1-2 minutes; later calls are fast.
 - A brand font is fetched from Google Fonts the first time it is used (then cached).
-- Hindi runs on Kokoro + estimated word timings until the Indic Parler-TTS decision (see Phase 4).
+- Indian languages use estimated word timings (no commercially usable aligners set up), so word-synced reveals and
+  captions are approximate; cuts are unaffected.
+- Indic Parler-TTS has not been run with the real model yet (built where Hugging Face was blocked); the beta languages'
+  preview sentences are only greetings.
 - 9:16 with a landscape screenshot (screenshot_zoom, laptop/browser mockups) leaves the image small; the director
   is told to use the phone screenshot for 9:16.
 - ACE-Step music generation needs a GPU; it will not run on this machine.

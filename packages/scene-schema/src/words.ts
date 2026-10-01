@@ -1,7 +1,7 @@
 // One word-normalization rule shared by validation, timing, SFX and templates,
 // so "Beat," in a voiceover and "beat" in a cue or a card title always match.
-// Letters, digits and combining marks are kept: Devanagari vowel signs and the virama are marks (\p{M}),
-// and dropping them would make different Hindi words look the same.
+// Letters, digits and combining marks are kept: vowel signs and the virama of Indian scripts are marks (\p{M}),
+// and dropping them would make different words look the same.
 export function normalizeWord(word: string): string {
   return word.toLowerCase().normalize("NFC").replace(/[^\p{L}\p{M}\p{N}']/gu, "");
 }
@@ -56,7 +56,7 @@ export interface SpeechModel {
 export function speechSeconds(text: string, voiceId: string, speed: number, model: SpeechModel): number {
   const words = text.split(/\s+/).filter(Boolean);
   const spoken = words.reduce((sum, w) => sum + spokenWordCount(w), 0);
-  const pauses = words.slice(0, -1).filter((w) => /[.,!?;:\u0964\u0965]$/.test(w)).length; // incl. the Devanagari danda
+  const pauses = words.slice(0, -1).filter((w) => /[.,!?;:\u0964\u0965\u06d4\u060c\u1c7e\u1c7f]$/.test(w)).length; // incl. the danda, Urdu and Ol Chiki stops
   const rate = (model.rates[voiceId] ?? model.defaultRate) * (speed || 1);
   return spoken / rate + pauses * model.pause;
 }

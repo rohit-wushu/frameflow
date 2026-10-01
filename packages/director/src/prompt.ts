@@ -1,12 +1,10 @@
-import type { Asset, Brand, Format, Mood } from "@frameflow/scene-schema";
-import type { LANGUAGES } from "@frameflow/scene-schema";
-
-export type Language = (typeof LANGUAGES)[number];
-import { MOODS } from "@frameflow/scene-schema";
+import { LANGUAGE_INFO, LANGUAGES, MOODS, VOICE_STYLES, type Asset, type Brand, type Format, type Language, type Mood } from "@frameflow/scene-schema";
 import { commonIcons } from "@frameflow/templates";
 import { buildCatalog } from "@frameflow/templates/catalog";
 import { researchAssets, type BrandResearch } from "./brand.js";
-import { DEFAULT_RATE, LANGUAGE_NOTES, PAUSE_SECONDS, TRANSITION_NOTES, VOICES } from "./options.js";
+import { languageNote, PAUSE_SECONDS, TRANSITION_NOTES, VOICES, voiceRate, voicesFor } from "./options.js";
+
+export type { Language };
 
 export interface Sound {
   id: string;
@@ -47,7 +45,7 @@ call get_project and edit_scene. Ask the user for anything important you can't i
 export function systemPrompt(sounds: Sound[], musicMoods: string[], overhead: number, mode: "api" | "tool" = "api"): string {
   const toolFields =
     mode === "tool"
-      ? `\n  "format": "16:9" | "9:16" | "1:1",\n  "targetDuration": seconds (15, 30, 60 or 90),\n  "language": "en" | "hi" | "hinglish",\n  "assets": research_brand's assets object, unchanged (only when there was a website; image templates refer to its names),`
+      ? `\n  "format": "16:9" | "9:16" | "1:1",\n  "targetDuration": seconds (15, 30, 60 or 90),\n  "language": one of ${LANGUAGES.map((l) => `"${l}"`).join(" | ")} (${LANGUAGES.map((l) => `${l} = ${LANGUAGE_INFO[l].name}`).join(", ")}),\n  "assets": research_brand's assets object, unchanged (only when there was a website; image templates refer to its names),`
       : "";
   return `${mode === "api" ? API_INTRO : TOOL_INTRO}
 
@@ -56,13 +54,14 @@ export function systemPrompt(sounds: Sound[], musicMoods: string[], overhead: nu
   "mood": one of ${MOODS.map((m) => `"${m}"`).join(" | ")},
   "brand": { "name": "...", "colors": { "primary": "#RRGGBB", "secondary": "#RRGGBB", "background": "#RRGGBB", "text": "#RRGGBB" },
              "font": { "heading": "Google Font family", "body": "Google Font family" } },
-  "voice": { "engine": "kokoro", "voiceId": "one of the voices below", "speed": 1.0 },
+  "voice": { "engine": "kokoro" for Kokoro voices, "indic-parler" for pr_ voices, "voiceId": "one of the voices below", "speed": 1.0 },
   "music": { "mode": "library", "mood": one of ${musicMoods.map((m) => `"${m}"`).join(" | ")} },
   "scenes": [
     { "id": "short-slug", "template": "template name", "content": { ...that template's fields... },
       "voiceover": "what the narrator says during this scene", "estDuration": seconds,
       "sfx": [], "transitionOut": "cut" | "fade" | "slide" | "zoom" | "wipe",
-      "textScale": optional, 0.7 to 1.4 (size of the scene's main text; 1 = the template's own, long text still shrinks to fit) }
+      "textScale": optional, 0.7 to 1.4 (size of the scene's main text; 1 = the template's own, long text still shrinks to fit),
+      "voiceId": optional, only when the user asks for this scene in another voice of the same language }
   ]
 }
 
@@ -91,9 +90,13 @@ export function systemPrompt(sounds: Sound[], musicMoods: string[], overhead: nu
   {"at": "on_word", "word": "free", "sound": "ding"}. "at" is "start", "end", "each_item" or "on_word" (which needs "word").
 - Leave "sfx" as [] when the defaults are enough.
 
-# Voices (voice.voiceId)
-${VOICES.map((v) => `- ${v.id}: ${v.label}, about ${v.rate ?? DEFAULT_RATE} words per second`).join("\n")}
-The voice must speak the video's language: English voices (af_, am_, bf_, bm_) for English, Hindi voices (hf_, hm_) for Hindi and Hinglish.
+# Voices (voice.voiceId), by language
+${LANGUAGES.filter((l) => l !== "hinglish")
+  .map((l) => `${LANGUAGE_INFO[l].name}${l === "hi" ? " (and Hinglish)" : ""}:\n${voicesFor(l).map((v) => `- ${v.id}: ${v.label}, about ${voiceRate(v)} words per second${v.tier === "pro" ? " [Pro]" : ""}`).join("\n")}`)
+  .join("\n")}
+The voice must speak the video's language. For a new video pick a voice without [Pro]; use a [Pro] voice only when the
+user asks for a different or premium voice. pr_ voices (Indic Parler) also take "style" in voice: ${VOICE_STYLES.map((s) => `"${s}"`).join(", ")}
+(leave it out unless the user asks for a way of speaking).
 
 # Transitions (transitionOut: how the scene leaves)
 ${Object.entries(TRANSITION_NOTES).map(([k, v]) => `- ${k}: ${v}`).join("\n")}
@@ -141,7 +144,9 @@ export function briefMessage(b: Brief): string {
   return [
     `Brief: ${b.prompt}`,
     `Length: ${b.durationSec} seconds. Format: ${b.format}. Mood: ${b.mood ?? "choose the best fit"}.`,
-    `Language: ${LANGUAGE_NOTES[b.language ?? "en"]}${(b.language ?? "en") !== "en" ? " Use one of the Hindi voices (hf_*, hm_*). Brand and product names stay as they are." : " Use one of the English voices."}`,
+    `Language: ${languageNote(b.language ?? "en")}${(b.language ?? "en") !== "en" ? " Brand and product names stay as they are." : ""} Use one of these voices: ${voicesFor(b.language ?? "en", "free")
+      .map((v) => v.id)
+      .join(", ")}.`,
     brandSection(b),
     b.research ? researchSection(b.research) : "",
     imagesSection(b.research ? researchAssets(b.research) : {}),
@@ -185,7 +190,10 @@ export function editMessage(e: EditRequest): string {
   length, colors, order).
 - Bigger or smaller text: set that scene's "textScale" (up to 1.4, down to 0.7). Long text shrinks to fit, so for a big
   jump also shorten it.
-- Calmer or more upbeat music: music.mood (and the video's mood if it fits). Another voice: a different voiceId from the list.
+- Calmer or more upbeat music: music.mood (and the video's mood if it fits). Another voice: a different voiceId of the
+  video's language from the list (set voice.engine to match); a way of speaking (calmer, more energetic): voice.style,
+  which only pr_ voices have, so switch to a pr_ voice of the language if needed. One scene in another voice: that
+  scene's "voiceId". Faster or slower speech: voice.speed (0.8 to 1.2), and re-check estDurations.
 - A changed voiceover needs a matching estDuration (the pacing rule); keep the total within 15% of targetDuration
   (change targetDuration only when the user asks for another length: 15, 30, 60 or 90).
 - If the request can't be done with the plan's fields, make the closest change and say so in the summary.

@@ -1,4 +1,4 @@
-import { db } from "@frameflow/db";
+import { db, effectiveTier } from "@frameflow/db";
 import type { ScenePlan } from "@frameflow/scene-schema";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -13,7 +13,7 @@ export const metadata = { title: "Storyboard" };
 
 export default async function StoryboardPage({ params }: PageProps<"/p/[id]/storyboard">) {
   const { id } = await params;
-  const { project } = await ownProject(id);
+  const { user, project } = await ownProject(id);
   if (project.status === "researching" || project.status === "brand") redirect(`/p/${id}/brand`);
   if (project.status === "directing") {
     return <Waiting projectId={id} status={project.status} title="Writing the script…" hint="The director picks a template for every scene and writes the words. Usually under a minute." />;
@@ -63,6 +63,7 @@ export default async function StoryboardPage({ params }: PageProps<"/p/[id]/stor
         format={project.format}
         language={project.language}
         rendered={!!project.currentVersion}
+        isPro={effectiveTier(user) === "pro"}
         messages={messages.map((m) => ({ id: m.id, role: m.role, text: m.text, version: m.version, sceneId: m.sceneId, createdAt: m.createdAt.toISOString() }))}
       />
     </div>

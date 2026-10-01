@@ -26,7 +26,7 @@ export default function Landing() {
     <div className="relative overflow-x-clip">
       <SiteNav />
       <main>
-        <Hero freeRenders={limitsFor("free").rendersPerMonth} />
+        <Hero freeVideos={limitsFor("free").videosPerMonth ?? 0} />
         <UseCaseMarquee />
         <Showcase />
         <KineticBand />

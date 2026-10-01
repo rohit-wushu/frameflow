@@ -67,8 +67,8 @@ def fill_gaps(times, total):
 
 
 def estimate(audio, text, sr=SAMPLE_RATE):
-    """Word timings without an aligner (used for Hindi until a commercially usable Hindi wav2vec2 model
-    is set up): find the pauses in the audio, give each phrase between punctuation one stretch of speech
+    """Word timings without an aligner (used for every language but English until commercially usable
+    wav2vec2 models for Indian languages are set up): find the pauses in the audio, give each phrase between punctuation one stretch of speech
     when the counts match, and share each stretch out by word length."""
     tokens = text.split()
     total = len(audio) / sr
@@ -91,11 +91,11 @@ def estimate(audio, text, sr=SAMPLE_RATE):
         stretches.append((start * 0.02, min(total, (len(quiet) - gap) * 0.02)))
     if not stretches:
         stretches = [(0.0, total)]
-    # phrases end at punctuation (including the Devanagari danda)
+    # phrases end at punctuation (including the Devanagari danda, Urdu's full stop and comma, Ol Chiki's stops)
     phrases, cur = [], []
     for t in tokens:
         cur.append(t)
-        if re.search(r"[.,!?;:\u0964\u0965]$", t):
+        if re.search(r"[.,!?;:\u0964\u0965\u06d4\u060c\u1c7e\u1c7f]$", t):
             phrases.append(cur)
             cur = []
     if cur:

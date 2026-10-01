@@ -25,7 +25,7 @@ Director options:
   --duration <s>     15, 30, 60 or 90 (default 30)
   --format <f>       16:9, 9:16 or 1:1 (default 16:9)
   --mood <m>         ${MOODS.join(", ")} (default: the director chooses)
-  --language <l>     en, hi (Hindi) or hinglish (default en)
+  --language <l>     en (default), hi, hinglish, bn, mr, te, ta, gu, kn, ml, pa, or, as, ur, ne, sa, mai, kok, doi, brx, mni, sat, sd
 
 Render options:
   --draft            fast, lower-quality render (for iterating)

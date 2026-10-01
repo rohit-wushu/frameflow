@@ -79,7 +79,7 @@ function checkRules(plan: ScenePlan, ctx: ValidationContext, errors: ValidationI
       // the real scene length comes from the voice, so the voiceover must fit the scene
       const vo = typeof scene.voiceover === "string" ? scene.voiceover.trim() : "";
       if (ctx.speech && vo && typeof scene.estDuration === "number") {
-        const voiceId = typeof plan.voice?.voiceId === "string" ? plan.voice.voiceId : "";
+        const voiceId = typeof scene.voiceId === "string" ? scene.voiceId : typeof plan.voice?.voiceId === "string" ? plan.voice.voiceId : "";
         const speed = typeof plan.voice?.speed === "number" ? plan.voice.speed : 1;
         const spoken = speechSeconds(vo, voiceId, speed, ctx.speech) + ctx.speech.overhead;
         if (spoken + SPEECH_MARGIN > template.maxDuration) {

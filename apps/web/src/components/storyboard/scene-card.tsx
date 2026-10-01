@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { catalog, templateInfo, templateLabel } from "@/lib/catalog";
 import { cn } from "@/lib/utils";
+import { VoiceSelect } from "@/components/voice-picker";
 import { ContentFields, type Assets } from "./content-fields";
 
 export interface Scene {
@@ -18,6 +19,7 @@ export interface Scene {
   sfx: unknown[];
   transitionOut: string;
   textScale?: number;
+  voiceId?: string; // this scene in another voice (Pro)
 }
 
 
@@ -34,6 +36,8 @@ export function SceneCard({
   onRemove,
   onAdd,
   assets,
+  language,
+  planVoiceId,
 }: {
   index: number;
   count: number;
@@ -47,6 +51,8 @@ export function SceneCard({
   onRemove: () => void;
   onAdd: (template: string) => void;
   assets: Assets;
+  language: string;
+  planVoiceId: string;
 }) {
   const t = templateInfo(scene.template);
   const contentErrors = Object.fromEntries(issues.filter((i) => i.path.startsWith("content.")).map((i) => [i.path.slice("content.".length), i.message]));
@@ -156,6 +162,19 @@ export function SceneCard({
                 className="w-full accent-primary"
               />
             </div>
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs text-muted-foreground">Voice in this scene</Label>
+            <VoiceSelect
+              size="sm"
+              allowSame
+              language={language}
+              value={scene.voiceId && scene.voiceId !== planVoiceId ? scene.voiceId : "same"}
+              onChange={(v) => {
+                const { voiceId: _, ...rest } = scene;
+                onChange(v === "same" ? rest : { ...scene, voiceId: v });
+              }}
+            />
           </div>
           {otherErrors.map((e) => (
             <p key={e.path + e.message} className="text-xs text-destructive">

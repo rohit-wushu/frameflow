@@ -2,20 +2,25 @@
 // It is not a director: new plans are stitched from the template examples, and edits follow a few
 // keyword rules ("bigger", "smaller", "calmer", "voice"). Never enable it for real users.
 import { SPEECH, type Llm } from "@frameflow/director";
-import { speechSeconds } from "@frameflow/scene-schema";
+import { speechSeconds, voiceEngine } from "@frameflow/scene-schema";
 import { templates } from "@frameflow/templates";
 
 const scene = (name: string, n: number, voiceId: string) => {
   const t = templates[name];
-  const spoken = speechSeconds(t.example.voiceover, voiceId, 1, SPEECH) + SPEECH.overhead;
-  const est = Math.round(Math.min(Math.max(spoken, t.meta.minDuration), t.meta.maxDuration) * 10) / 10;
-  return { id: `${name.replace("_", "-")}-${n}`, template: name, content: structuredClone(t.example.content), voiceover: t.example.voiceover, estDuration: est, sfx: [], transitionOut: n % 2 ? "slide" : "cut" };
+  const seconds = (text: string) => speechSeconds(text, voiceId, 1, SPEECH) + SPEECH.overhead;
+  // slower voices (e.g. Tamil) say fewer words a second: drop words until the example fits the template
+  let words = t.example.voiceover.split(" ");
+  while (words.length > 3 && seconds(words.join(" ")) + 0.5 > t.meta.maxDuration) words = words.slice(0, -1);
+  const voiceover = words.join(" ");
+  const est = Math.round(Math.min(Math.max(seconds(voiceover), t.meta.minDuration), t.meta.maxDuration) * 10) / 10;
+  return { id: `${name.replace("_", "-")}-${n}`, template: name, content: structuredClone(t.example.content), voiceover, estDuration: est, sfx: [], transitionOut: n % 2 ? "slide" : "cut" };
 };
 
 function newPlan(user: string): string {
   const title = /^Brief: (.*)$/m.exec(user)?.[1]?.slice(0, 80) ?? "Fake plan";
   const target = Number(/^Length: (\d+) seconds/m.exec(user)?.[1] ?? 30);
-  const voiceId = "af_heart";
+  // the first voice the brief offers for its language
+  const voiceId = /Use one of these voices: ([\w-]+)/.exec(user)?.[1] ?? "af_heart";
   const middles = ["feature_grid", "stat_counter"];
   const end = [scene("cta", 90, voiceId), scene("logo_reveal", 91, voiceId)];
   const scenes = [scene("hero_text", 0, voiceId)];
@@ -32,7 +37,7 @@ function newPlan(user: string): string {
     title,
     mood: "energetic",
     brand: { name: "Fake Co", colors: { primary: "#7C5CFF", secondary: "#22D3EE", background: "#0B0B14", text: "#F5F5FA" }, font: { heading: "Space Grotesk", body: "Inter" } },
-    voice: { engine: "kokoro", voiceId, speed: 1 },
+    voice: { engine: voiceEngine(voiceId), voiceId, speed: 1 },
     music: { mode: "library", mood: "energetic" },
     scenes: [...scenes, ...end],
   });

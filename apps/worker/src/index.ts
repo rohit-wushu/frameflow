@@ -2,8 +2,8 @@
 //   media queue: brand research + render stages (Chrome and the audio models; MEDIA_CONCURRENCY, default 1)
 //   ai queue:    the director's plans and chat edits (Claude; AI_CONCURRENCY, default 3)
 import { anthropicLlm, checkPlan, type Llm } from "@frameflow/director";
-import { AI_QUEUE, CHECK_QUEUE, closeJobs, MEDIA_QUEUE, PREFIX, redis, RENDER_STAGES as JOB_STAGES, type ChatJobData, type CheckJobData, type DirectJobData, type ResearchJobData, type StageJobData } from "@frameflow/jobs";
-import { createContext, ensureAudioService, loadSfxLibrary, RENDER_STAGES } from "@frameflow/pipeline";
+import { AI_QUEUE, CHECK_QUEUE, closeJobs, MEDIA_QUEUE, PREFIX, redis, RENDER_STAGES as JOB_STAGES, VOICE_QUEUE, type ChatJobData, type CheckJobData, type DirectJobData, type ResearchJobData, type StageJobData, type VoiceSampleJobData } from "@frameflow/jobs";
+import { createContext, ensureAudioService, loadSfxLibrary, RENDER_STAGES, voiceSampleFile } from "@frameflow/pipeline";
 import { Worker, type Job } from "bullmq";
 import { chatProcessor, directProcessor, failChat, failDirect, failResearch, researchProcessor } from "./ai.js";
 import { fakeDirector } from "./fake-director.js";
@@ -67,6 +67,17 @@ const check = new Worker(CHECK_QUEUE, async (job: Job<CheckJobData>) => checkPla
 });
 check.on("error", (err) => log(`check worker error: ${err.message}`));
 
+// voice previews for the voice picker (cached, so each voice + style is made once)
+const voice = new Worker(
+  VOICE_QUEUE,
+  async (job: Job<VoiceSampleJobData>) => {
+    await ensureAudio();
+    return voiceSampleFile(ctx, job.data);
+  },
+  { connection: redis(), prefix: PREFIX, concurrency: 1, lockDuration: 120_000 },
+);
+voice.on("error", (err) => log(`voice worker error: ${err.message}`));
+
 // a job is failed for good when its attempts are used up (or it threw an UnrecoverableError)
 const finalFailure = (job: Job) => job.attemptsMade >= (job.opts.attempts ?? 1) || job.failedReason?.startsWith("Unrecoverable") || job.stacktrace?.some((s) => s.includes("UnrecoverableError"));
 
@@ -87,11 +98,11 @@ for (const w of [media, ai]) {
   w.on("error", (err) => log(`worker error: ${err.message}`));
 }
 
-log(`listening on ${MEDIA_QUEUE}, ${AI_QUEUE} and ${CHECK_QUEUE} (Redis ${new URL(process.env.REDIS_URL ?? "redis://127.0.0.1:6379/5").host})`);
+log(`listening on ${MEDIA_QUEUE}, ${AI_QUEUE}, ${CHECK_QUEUE} and ${VOICE_QUEUE} (Redis ${new URL(process.env.REDIS_URL ?? "redis://127.0.0.1:6379/5").host})`);
 
 const shutdown = async () => {
   log("shutting down (finishing running jobs)...");
-  await Promise.all([media.close(), ai.close(), check.close()]);
+  await Promise.all([media.close(), ai.close(), check.close(), voice.close()]);
   await closeJobs();
   stopAudio?.();
   process.exit(0);

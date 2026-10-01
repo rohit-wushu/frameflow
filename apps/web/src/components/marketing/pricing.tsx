@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Accent, SectionHeading } from "./section-heading";
 
-type Limits = { rendersPerMonth: number; aiCallsPerDay: number };
+type Limits = { videosPerMonth: number | null; rendersPerMonth: number; aiCallsPerDay: number };
 
 // Plan limits come from packages/db (limitsFor) and the Pro price from lib/site (proOffer), so this page
 // always matches what the app enforces and charges.
@@ -19,7 +19,8 @@ export function Pricing({ free, pro, offer }: { free: Limits; pro: Limits; offer
       cta: { label: "Start free", href: "/signup" },
       featured: false,
       items: [
-        `${free.rendersPerMonth} renders a month (edits included)`,
+        `${free.videosPerMonth} videos a month, with edits`,
+        "Try every voice and style (watermarked preview)",
         `${free.aiCallsPerDay} AI director requests a day`,
         "16:9, 9:16 and 1:1, 15 to 90 seconds",
         "Brand kits from your website",
@@ -34,7 +35,9 @@ export function Pricing({ free, pro, offer }: { free: Limits; pro: Limits; offer
       cta: { label: "Start free, upgrade anytime", href: "/signup" },
       featured: true,
       items: [
-        `${pro.rendersPerMonth} renders a month`,
+        `${pro.videosPerMonth === null ? "Unlimited videos" : `${pro.videosPerMonth} videos a month`}, up to ${pro.rendersPerMonth} renders`,
+        "Premium natural voices in 20+ Indian languages",
+        "Voice styles, speed and a voice per scene",
         `${pro.aiCallsPerDay} AI director requests a day`,
         "Everything in Free",
         "Pay by UPI, card or netbanking",

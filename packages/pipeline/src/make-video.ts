@@ -2,10 +2,10 @@ import { createHash } from "node:crypto";
 import { existsSync } from "node:fs";
 import { copyFile, mkdir, writeFile } from "node:fs/promises";
 import { dirname, extname, isAbsolute, join, resolve } from "node:path";
-import { safeFetch } from "@frameflow/director";
+import { safeFetch, VOICES } from "@frameflow/director";
 import { BALANCE_TARGET, decodeMono, ffmpeg, mix, MIX_SETTINGS, type Loudness, type MixBalance } from "@frameflow/mixer";
-import { socialEncode, verifyVideo, type Check, type Quality, type Renderer } from "@frameflow/renderer";
-import { FORMAT_SIZE, formatIssues, validatePlan, type Format, type ScenePlan } from "@frameflow/scene-schema";
+import { socialEncode, verifyVideo, watermarkPreview, type Check, type Quality, type Renderer } from "@frameflow/renderer";
+import { FORMAT_SIZE, formatIssues, htmlLang, LANGUAGE_INFO, proFeatures, validatePlan, voiceEngine, type Format, type Language, type ScenePlan } from "@frameflow/scene-schema";
 import { placeSfx, type PlacedCue } from "@frameflow/sfx";
 import { templateRules, templates } from "@frameflow/templates";
 import { applyTiming, buildCaptions, computeTiming, toSrt, toVtt, type BeatGrid, type CaptionChunk, type SceneVoice, type TimingResult } from "@frameflow/timing";
@@ -80,6 +80,7 @@ export interface QaReport {
   warnings: string[];
   reused: string[]; // what an edit did not have to redo, e.g. "voice for 4 of 5 scenes"
   videos: Partial<Record<Format, string>>; // file name per rendered format
+  pro: string[]; // Pro customizations it uses (then preview.mp4 is a watermarked copy; downloading needs Pro)
 }
 
 export interface MakeVideoResult {
@@ -102,6 +103,7 @@ interface MusicChoice {
   grid: BeatGrid;
 }
 
+const FREE_VOICES = VOICES.filter((v) => v.tier === "free").map((v) => v.id);
 const hash = (x: unknown) => createHash("sha1").update(JSON.stringify(x)).digest("hex").slice(0, 16);
 const round = (x: number) => Math.round(x * 1000) / 1000;
 
@@ -173,7 +175,26 @@ const out = (c: StageContext, name: string) => `${c.outKey}/${name}`;
 const info = (c: StageContext, step: StepId, message: string) => c.onEvent?.({ step, status: "info", message });
 const readPlan = (c: StageContext) => c.storage.readJson<ScenePlan>(out(c, "plan.json"));
 const spokenScenes = (plan: ScenePlan) => plan.scenes.filter((s) => s.voiceover.trim());
-const ttsKey = (plan: ScenePlan, text: string) => `cache/tts/${hash([plan.voice.engine, plan.voice.voiceId, plan.voice.speed, text])}.wav`;
+// A scene speaks in its own voice when it has one, else the plan's. The style only shapes Indic Parler voices.
+export function sceneVoice(plan: ScenePlan, scene: { voiceId?: string }) {
+  const voiceId = scene.voiceId ?? plan.voice.voiceId;
+  const engine = voiceEngine(voiceId);
+  return { voiceId, engine, speed: plan.voice.speed, style: engine === "indic-parler" ? (plan.voice.style ?? "natural") : null };
+}
+// A short preview of a voice for the voice picker, cached like voiceover files. Returns its storage key.
+export async function voiceSampleFile(c: { storage: Storage; audio: AudioClient }, o: { voiceId: string; style: string | null; language: string }): Promise<string> {
+  const info = LANGUAGE_INFO[o.language as Language];
+  if (!info) throw new Error(`unknown language "${o.language}"`);
+  const engine = voiceEngine(o.voiceId);
+  const style = engine === "indic-parler" ? (o.style ?? "natural") : null;
+  const key = `cache/samples/${hash([engine, o.voiceId, style, info.sample])}.wav`;
+  if (!c.storage.exists(key)) await c.storage.write(key, await c.audio.tts(info.sample, o.voiceId, 1, engine, style));
+  return key;
+}
+
+// the Kokoro key keeps its old shape, so voice files made before styles existed are still found
+const ttsKey = (v: ReturnType<typeof sceneVoice>, text: string) =>
+  `cache/tts/${hash(v.style ? [v.engine, v.voiceId, v.speed, v.style, text] : [v.engine, v.voiceId, v.speed, text])}.wav`;
 
 // Warnings are kept per stage (a retried stage replaces its own), and collected by "finish".
 async function saveWarnings(c: StageContext, stage: RenderStage, list: string[]) {
@@ -206,11 +227,12 @@ const STAGES: Record<RenderStage, StageFn> = {
     const keys: Record<string, string> = {};
     let made = 0;
     for (const [i, scene] of spoken.entries()) {
-      const key = ttsKey(plan, scene.voiceover);
+      const voice = sceneVoice(plan, scene);
+      const key = ttsKey(voice, scene.voiceover);
       keys[scene.id] = key;
       if (c.storage.exists(key)) continue;
       info(c, "voiceover", `scene ${i + 1}/${spoken.length}`);
-      await c.storage.write(key, await c.audio.tts(scene.voiceover, plan.voice.voiceId, plan.voice.speed, plan.voice.engine));
+      await c.storage.write(key, await c.audio.tts(scene.voiceover, voice.voiceId, voice.speed, voice.engine, voice.style));
       made++;
     }
     await c.storage.writeJson(out(c, "voices.json"), keys);
@@ -228,7 +250,7 @@ const STAGES: Record<RenderStage, StageFn> = {
       const key = `cache/align/${hash([keys[scene.id], scene.voiceover, plan.language])}.json`;
       if (!c.storage.exists(key)) {
         info(c, "alignment", `scene ${i + 1}/${spoken.length}`);
-        await c.storage.writeJson(key, await c.audio.align(await c.storage.read(keys[scene.id]), scene.voiceover, plan.language === "en" ? "en" : "hi"));
+        await c.storage.writeJson(key, await c.audio.align(await c.storage.read(keys[scene.id]), scene.voiceover, plan.language === "en" ? "en" : htmlLang(plan.language)));
         made++;
       }
       voices[scene.id] = await c.storage.readJson<SceneVoice>(key);
@@ -365,6 +387,8 @@ const STAGES: Record<RenderStage, StageFn> = {
     const { balance } = await c.storage.readJson<{ balance: MixBalance | null }>(out(c, "mix.json"));
     const video = c.storage.path(out(c, "video.mp4"));
     if (c.options.social !== false) await socialEncode(video, c.storage.path(out(c, "video-social.mp4")));
+    const pro = proFeatures(timed, FREE_VOICES);
+    if (pro.length) await watermarkPreview(video, join(c.assetsDir, "brand/watermark.png"), c.storage.path(out(c, "preview.mp4")), FORMAT_SIZE[timed.format].width);
 
     const videos: Partial<Record<Format, string>> = {};
     const checks: Check[] = [];
@@ -413,6 +437,7 @@ const STAGES: Record<RenderStage, StageFn> = {
       warnings,
       reused,
       videos,
+      pro,
     };
     await c.storage.writeJson(out(c, "qa.json"), qa);
   },
