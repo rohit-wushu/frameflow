@@ -1,7 +1,7 @@
 // Writes src/generated/catalog.json: everything the web app needs to know about templates, voices,
 // music moods and fonts, without importing the engine (which reads files at runtime) into Next.js.
 // Runs before `next dev` / `next build`.
-import { readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { DEFAULT_RATE, isGoogleFont, PAUSE_SECONDS, SPEECH, TRANSITION_NOTES, VOICES } from "@frameflow/director";
@@ -43,5 +43,6 @@ const catalog = {
   fonts,
 };
 const out = join(here, "..", "src", "generated", "catalog.json");
+mkdirSync(dirname(out), { recursive: true }); // src/generated is gitignored, so a fresh clone lacks it
 writeFileSync(out, JSON.stringify(catalog, null, 1) + "\n");
 console.log(`wrote ${out}: ${catalog.templates.length} templates, ${catalog.voices.length} voices, ${fonts.length} fonts`);

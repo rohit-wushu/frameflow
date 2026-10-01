@@ -14,14 +14,21 @@ export function SiteFooter() {
         <div className="flex gap-14 text-sm">
           <div className="space-y-2.5">
             <div className="font-medium">Product</div>
-            <a href="#how" className="block text-muted-foreground transition hover:text-foreground">How it works</a>
-            <a href="#features" className="block text-muted-foreground transition hover:text-foreground">Features</a>
-            <a href="#pricing" className="block text-muted-foreground transition hover:text-foreground">Pricing</a>
+            <a href="/#how" className="block text-muted-foreground transition hover:text-foreground">How it works</a>
+            <a href="/#features" className="block text-muted-foreground transition hover:text-foreground">Features</a>
+            <a href="/#pricing" className="block text-muted-foreground transition hover:text-foreground">Pricing</a>
           </div>
           <div className="space-y-2.5">
             <div className="font-medium">Account</div>
             <Link href="/login" className="block text-muted-foreground transition hover:text-foreground">Log in</Link>
             <Link href="/signup" className="block text-muted-foreground transition hover:text-foreground">Sign up</Link>
+          </div>
+          <div className="space-y-2.5">
+            <div className="font-medium">Company</div>
+            <Link href="/contact" className="block text-muted-foreground transition hover:text-foreground">Contact</Link>
+            <Link href="/terms" className="block text-muted-foreground transition hover:text-foreground">Terms</Link>
+            <Link href="/privacy" className="block text-muted-foreground transition hover:text-foreground">Privacy</Link>
+            <Link href="/refunds" className="block text-muted-foreground transition hover:text-foreground">Refunds</Link>
           </div>
         </div>
       </div>

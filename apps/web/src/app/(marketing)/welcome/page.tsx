@@ -11,6 +11,7 @@ import { SiteNav } from "@/components/marketing/site-nav";
 import { StatsBand } from "@/components/marketing/stats-band";
 import { Templates } from "@/components/marketing/templates";
 import { UseCaseMarquee } from "@/components/marketing/use-case-marquee";
+import { proOffer } from "@/lib/site";
 
 // The public landing page. Signed-out visitors to "/" are rewritten here by proxy.ts;
 // it renders no user data.
@@ -32,7 +33,7 @@ export default function Landing() {
         <Features />
         <StatsBand />
         <Templates />
-        <Pricing free={limitsFor("free")} pro={limitsFor("pro")} />
+        <Pricing free={limitsFor("free")} pro={limitsFor("pro")} offer={proOffer()} />
         <FinalCta />
       </main>
       <SiteFooter />

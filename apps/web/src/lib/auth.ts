@@ -3,7 +3,7 @@ import { createHash, randomBytes, scrypt, timingSafeEqual } from "node:crypto";
 import { promisify } from "node:util";
 import { db } from "@frameflow/db";
 import { cookies } from "next/headers";
-import { redirect } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { cache } from "react";
 
 // Email + password accounts with database sessions. The cookie holds a random token; the database keeps
@@ -34,6 +34,7 @@ export async function startSession(userId: string) {
   const token = randomBytes(32).toString("base64url");
   const expiresAt = new Date(Date.now() + SESSION_DAYS * 24 * 3600 * 1000);
   await db().session.create({ data: { id: tokenId(token), userId, expiresAt } });
+  await db().user.update({ where: { id: userId }, data: { lastLoginAt: new Date() } });
   (await cookies()).set(COOKIE, token, { httpOnly: true, secure: secureCookies(), sameSite: "lax", path: "/", expires: expiresAt });
 }
 
@@ -49,7 +50,7 @@ export const currentUser = cache(async () => {
   const token = (await cookies()).get(COOKIE)?.value;
   if (!token) return null;
   const session = await db().session.findUnique({ where: { id: tokenId(token) }, include: { user: true } });
-  if (!session || session.expiresAt < new Date()) return null;
+  if (!session || session.expiresAt < new Date() || session.user.disabledAt) return null;
   const { passwordHash: _, ...user } = session.user;
   return user;
 });
@@ -58,6 +59,27 @@ export async function requireUser() {
   const user = await currentUser();
   if (!user) redirect("/login");
   return user;
+}
+
+// Admins: role "admin" in the database, or an email listed in ADMIN_EMAILS (comma-separated; for the first admin).
+const adminEmails = () =>
+  (process.env.ADMIN_EMAILS ?? "")
+    .split(",")
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean);
+
+export const isAdmin = (user: { email: string; role: string }) => user.role === "admin" || adminEmails().includes(user.email.toLowerCase());
+
+// Admin pages answer 404 to everyone else, so they don't reveal that they exist.
+export async function requireAdmin() {
+  const user = await requireUser();
+  if (!isAdmin(user)) notFound();
+  return user;
+}
+
+// Signs the user out everywhere (after a password reset, or when an admin disables the account).
+export async function endAllSessions(userId: string) {
+  await db().session.deleteMany({ where: { userId } });
 }
 
 export const SESSION_COOKIE = COOKIE;

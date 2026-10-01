@@ -19,7 +19,9 @@ export type Issue = { path: string; message: string };
 export type ActionResult = { ok: true } | { ok: false; error?: string; issues?: Issue[] };
 
 // Quotas: renders per month, director calls per day (see packages/db/src/limits.ts).
-async function quota(user: { id: string; tier: string }, need: { render?: boolean; ai?: boolean }): Promise<string | null> {
+// Unconfirmed emails can look around but not spend renders or AI requests (stops throwaway sign-ups).
+async function quota(user: { id: string; tier: string; proUntil: Date | null; emailVerifiedAt: Date | null }, need: { render?: boolean; ai?: boolean }): Promise<string | null> {
+  if (!user.emailVerifiedAt) return "Confirm your email first: open the link we sent you (or use “Resend email” at the top of the page).";
   const u = await usageFor(db(), user);
   if (need.render && u.renders >= u.rendersLimit) return `You have used all ${u.rendersLimit} renders for this month (resets ${u.resetsOn.toISOString().slice(0, 10)}).`;
   if (need.ai && u.aiCalls >= u.aiCallsLimit) return `You have used today's ${u.aiCallsLimit} AI requests; try again tomorrow.`;

@@ -12,18 +12,25 @@ datasource db {
 }
 
 model User {
-  id           String     @id @default(cuid())
-  email        String     @unique
-  name         String
-  passwordHash String
-  tier         String     @default("free") // sets the monthly limits (see packages/db/src/limits.ts)
-  createdAt    DateTime   @default(now())
-  sessions     Session[]
-  projects     Project[]
-  brandKits    BrandKit[]
-  uploads      Upload[]
-  jobs         Job[]
-  batches      Batch[]
+  id              String       @id @default(cuid())
+  email           String       @unique
+  name            String
+  passwordHash    String
+  tier            String       @default("free") // sets the monthly limits (see packages/db/src/limits.ts)
+  proUntil        DateTime? // "pro" ends here (a paid pass); null = no end (given by an admin)
+  role            String       @default("user") // user | admin (ADMIN_EMAILS also makes an account an admin)
+  emailVerifiedAt DateTime?
+  disabledAt      DateTime? // set by an admin: can't log in, sessions stop working
+  lastLoginAt     DateTime?
+  createdAt       DateTime     @default(now())
+  sessions        Session[]
+  emailTokens     EmailToken[]
+  payments        Payment[]
+  projects        Project[]
+  brandKits       BrandKit[]
+  uploads         Upload[]
+  jobs            Job[]
+  batches         Batch[]
 }
 
 model Session {
@@ -188,4 +195,62 @@ model Batch {
   projects        Project[]
 
   @@index([userId, createdAt])
+}
+
+enum EmailTokenKind {
+  verify // confirm the email address
+  reset // set a new password
+}
+
+// One-time links sent by email. Like sessions, only the SHA-256 of the token is stored.
+model EmailToken {
+  id        String         @id // sha256 of the token
+  userId    String
+  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  kind      EmailTokenKind
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime       @default(now())
+
+  @@index([userId, kind])
+}
+
+enum PaymentStatus {
+  created // order made, checkout not finished
+  paid
+  failed
+}
+
+// A Razorpay order for a Pro pass (PRO_DAYS of Pro). Paid once = Pro extended once (see activatePayment).
+model Payment {
+  id        String        @id @default(cuid())
+  userId    String? // null once the account is deleted: payment records are kept for tax
+  user      User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+  orderId   String        @unique // Razorpay order_...
+  paymentId String? // Razorpay pay_..., once paid
+  amount    Int // in paise
+  currency  String        @default("INR")
+  plan      String // e.g. "pro"
+  days      Int // how long the pass lasts
+  status    PaymentStatus @default(created)
+  error     String?
+  paidAt    DateTime?
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  @@index([userId, createdAt])
+  @@index([status, paidAt])
+}
+
+// What admins changed (tier, disable, ...), so changes to accounts can be traced.
+model AuditLog {
+  id        String   @id @default(cuid())
+  actorId   String? // the admin; null = the system (e.g. a payment webhook)
+  action    String // e.g. "user.tier", "user.disable", "payment.paid"
+  targetId  String? // usually a user id
+  detail    String
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([targetId, createdAt])
 }

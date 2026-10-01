@@ -2,11 +2,12 @@ import { createReadStream } from "node:fs";
 import { stat } from "node:fs/promises";
 import { db } from "@frameflow/db";
 import type { NextRequest } from "next/server";
-import { currentUser } from "@/lib/auth";
+import { currentUser, isAdmin } from "@/lib/auth";
 import { storagePath } from "@/lib/storage";
 
 // Serves a storage key to its owner, e.g. /api/files/projects/<id>/v2/video.mp4. Only finished outputs,
 // research images and the user's own uploads can be read; nothing else in storage/ (plans, work files).
+// Admins can also open other users' project files (support: watching a video that went wrong).
 const VERSION_FILE = /^(video(-(16x9|9x16|1x1))?\.mp4|video-social\.mp4|poster\.jpg|captions\.(srt|vtt)|credits\.txt|waveform\.json|mix\.m4a)$/;
 const RESEARCH_FILE = /^(screenshot(-mobile)?\.png|logo\.(svg|png|jpe?g|webp))$/;
 const UPLOAD_FILE = /^[a-f0-9]{24}\.(png|jpg|webp|svg)$/;
@@ -49,10 +50,10 @@ function fileStream(file: string, range?: { start: number; end: number }): Reada
   });
 }
 
-async function allowed(parts: string[], userId: string): Promise<boolean> {
+async function allowed(parts: string[], user: { id: string; email: string; role: string }): Promise<boolean> {
   const [area, owner, a, b] = parts;
-  if (area === "uploads") return parts.length === 3 && owner === userId && UPLOAD_FILE.test(a);
-  const project = owner ? await db().project.findFirst({ where: { id: owner, userId }, select: { id: true } }) : null;
+  if (area === "uploads") return parts.length === 3 && (owner === user.id || isAdmin(user)) && UPLOAD_FILE.test(a);
+  const project = owner ? await db().project.findFirst({ where: { id: owner, ...(isAdmin(user) ? {} : { userId: user.id }) }, select: { id: true } }) : null;
   if (!project) return false;
   if (area === "projects") return parts.length === 4 && /^v\d+$/.test(a) && VERSION_FILE.test(b);
   if (area === "research") return parts.length === 3 && RESEARCH_FILE.test(a);
@@ -62,7 +63,7 @@ async function allowed(parts: string[], userId: string): Promise<boolean> {
 export async function GET(req: NextRequest, ctx: RouteContext<"/api/files/[...key]">) {
   const user = await currentUser();
   const { key } = await ctx.params;
-  if (!user || key.some((p) => p === ".." || p === "." || p.includes("\0")) || !(await allowed(key, user.id))) {
+  if (!user || key.some((p) => p === ".." || p === "." || p.includes("\0")) || !(await allowed(key, user))) {
     return new Response("Not found", { status: 404 });
   }
   const file = storagePath(key.join("/"));

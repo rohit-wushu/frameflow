@@ -53,6 +53,7 @@ export async function createBatch(projectId: string, csvText: string): Promise<B
   } catch (e) {
     return { ok: false, error: (e as Error).message };
   }
+  if (!user.emailVerifiedAt) return { ok: false, error: "Confirm your email first: open the link we sent you." };
   const usage = await usageFor(db(), user);
   const left = usage.rendersLimit - usage.renders;
   if (rows.length > left) return { ok: false, error: `This batch needs ${rows.length} renders; you have ${left} left this month.` };
